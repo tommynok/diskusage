@@ -34,10 +34,14 @@ android {
         common {
             def customKeystore = file('custom.jks')
             if (customKeystore.exists()) {
+                def envStorePass = System.getenv("KEYSTORE_PASSWORD")?.trim()
+                def envAlias = System.getenv("KEY_ALIAS")?.trim()
+                def envKeyPass = System.getenv("KEY_PASSWORD")?.trim()
+
                 storeFile customKeystore
-                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "diskusage"
-                keyAlias System.getenv("KEY_ALIAS") ?: "diskusage"
-                keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD") ?: "diskusage"
+                storePassword (envStorePass && !envStorePass.isEmpty()) ? envStorePass : "diskusage"
+                keyAlias (envAlias && !envAlias.isEmpty()) ? envAlias : "diskusage"
+                keyPassword (envKeyPass && !envKeyPass.isEmpty()) ? envKeyPass : ((envStorePass && !envStorePass.isEmpty()) ? envStorePass : "diskusage")
             } else {
                 storeFile file('diskusage.jks')
                 storePassword 'diskusage'

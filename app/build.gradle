@@ -32,10 +32,18 @@ android {
 
     signingConfigs {
         common {
-            storeFile file('diskusage.jks')
-            storePassword 'diskusage'
-            keyAlias 'diskusage'
-            keyPassword 'diskusage'
+            def customKeystore = file('custom.jks')
+            if (customKeystore.exists()) {
+                storeFile customKeystore
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "diskusage"
+                keyAlias System.getenv("KEY_ALIAS") ?: "diskusage"
+                keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD") ?: "diskusage"
+            } else {
+                storeFile file('diskusage.jks')
+                storePassword 'diskusage'
+                keyAlias 'diskusage'
+                keyPassword 'diskusage'
+            }
         }
     }
 
@@ -45,8 +53,9 @@ android {
         }
         release {
             signingConfig signingConfigs.common
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     externalNativeBuild {

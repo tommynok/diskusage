@@ -129,17 +129,17 @@ public class SelectActivity extends Activity {
           options.add(mountPoint.getRoot());
           actionList.add(new DiskUsageAction(mountPoint));
         }
-        options.add("[Show/hide]");
+        options.add(getString(R.string.option_show_hide));
         actionList.add(new ShowHideAction());
       } else if (expandRootMountPoints) {
         for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
           options.add(mountPoint.getRoot());
           actionList.add(new DiskUsageAction(mountPoint));
         }
-        options.add("[Show/hide]");
+        options.add(getString(R.string.option_show_hide));
         actionList.add(new ShowHideAction());
       } else {
-        options.add("[Root required]");
+        options.add(getString(R.string.option_root_required));
         actionList.add(() -> {
           expandRootMountPoints = true;
           makeDialog();

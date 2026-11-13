@@ -96,4 +96,7 @@
 </string-array>
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
     <string name="action_about">About</string>
+    <string name="option_show_hide">[Show/hide]</string>
+    <string name="option_root_required">[Root required]</string>
+    <string name="setup_visible_mount_points">Setup visible mount points</string>
 </resources>

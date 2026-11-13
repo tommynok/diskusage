@@ -101,4 +101,7 @@
     </string-array>
     <string name="mount_point_usage">Использовано: %1$s из %2$s</string>
     <string name="mount_point_no_info">Использовано: нет данных</string>
+    <string name="action_select_all">Выбрать все</string>
+    <string name="action_deselect_all">Снять все</string>
+    <string name="action_essential_only">Только основные</string>
 </resources>

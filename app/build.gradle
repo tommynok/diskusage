@@ -30,8 +30,21 @@ android {
         }
     }
 
+    signingConfigs {
+        common {
+            storeFile file('diskusage.jks')
+            storePassword 'diskusage'
+            keyAlias 'diskusage'
+            keyPassword 'diskusage'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.common
+        }
         release {
+            signingConfig signingConfigs.common
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }

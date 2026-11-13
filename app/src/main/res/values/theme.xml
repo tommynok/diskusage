@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Светлая тема для списков выбора накопителей, диалогов и настроек -->
     <style name="Theme" parent="android:Theme.DeviceDefault.Light">
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowBackground">#F8F9FA</item>
+        <item name="android:colorBackground">#F8F9FA</item>
     </style>
 
-    <!-- Оригинальная тёмная тема для окна анализа с графиком -->
-    <style name="Theme.NoBackground" parent="android:Theme.DeviceDefault">
-        <item name="android:windowBackground">@null</item>
+    <!-- Светлая тема для окна анализа (фон загрузки, диалоги и меню светлые; график внутри рендерится сам) -->
+    <style name="Theme.NoBackground" parent="android:Theme.DeviceDefault.Light">
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowBackground">#F8F9FA</item>
+        <item name="android:colorBackground">#F8F9FA</item>
     </style>
 </resources>

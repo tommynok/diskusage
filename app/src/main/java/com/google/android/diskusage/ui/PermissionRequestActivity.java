@@ -51,6 +51,7 @@ public class PermissionRequestActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
         ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         Intent i = getIntent();

@@ -19,6 +19,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
         addPreferencesFromResource(R.xml.mount_points_ignore_list);
         getPreferenceScreen().setOrderingAsAdded(true);
     }

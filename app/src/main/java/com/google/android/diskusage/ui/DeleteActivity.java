@@ -37,6 +37,12 @@ public class DeleteActivity extends Activity {
   Intent responseIntent;
 
   @Override
+  protected void onCreate(android.os.Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
+  }
+
+  @Override
   protected void onResume() {
     super.onResume();
 //    Debug.startMethodTracing("diskusage");

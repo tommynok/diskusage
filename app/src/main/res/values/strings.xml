@@ -99,4 +99,6 @@
     <string name="option_show_hide">[Show/hide]</string>
     <string name="option_root_required">[Root required]</string>
     <string name="setup_visible_mount_points">Setup visible mount points</string>
+    <string name="mount_point_usage">Used %1$s of %2$s</string>
+    <string name="mount_point_no_info">Used &lt;no information&gt;</string>
 </resources>

@@ -476,8 +476,8 @@ public class DiskUsage extends LoadableActivity {
       }
     }
     public String formatUsageInfo() {
-      if (totalBlocks == 0) return "Used <no information>";
-      return String.format("Used %s of %s",
+      if (totalBlocks == 0) return com.google.android.diskusage.utils.AppHelper.getAppContext().getString(R.string.mount_point_no_info);
+      return String.format(com.google.android.diskusage.utils.AppHelper.getAppContext().getString(R.string.mount_point_usage),
           FileSystemEntry.calcSizeString(busyBlocks * blockSize),
           FileSystemEntry.calcSizeString(totalBlocks * blockSize));
     }

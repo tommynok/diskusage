@@ -41,6 +41,7 @@ public abstract class LoadableActivity extends Activity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
     FileSystemEntry.setupStrings(this);
   }
 

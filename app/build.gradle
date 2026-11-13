@@ -40,7 +40,19 @@ android {
 
                 def storePass = (envStorePass && !envStorePass.isEmpty()) ? envStorePass : "diskusage"
                 def alias = (envAlias && !envAlias.isEmpty()) ? envAlias : "diskusage"
-                def keyPass = (envKeyPass && !envKeyPass.isEmpty()) ? envKeyPass : storePass
+                def keyPass = storePass
+
+                if (envKeyPass && !envKeyPass.isEmpty()) {
+                    try {
+                        def ks = java.security.KeyStore.getInstance(customKeystore, storePass.toCharArray())
+                        def key = ks.getKey(alias, envKeyPass.toCharArray())
+                        if (key != null) {
+                            keyPass = envKeyPass
+                        }
+                    } catch (Exception ignored) {
+                        keyPass = storePass
+                    }
+                }
 
                 storeFile customKeystore
                 storePassword storePass

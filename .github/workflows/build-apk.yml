@@ -52,14 +52,14 @@ jobs:
             ALIAS=$(echo -n "$KEY_ALIAS" | tr -d '\r\n')
 
             echo "=== Checking Keystore Store Password ==="
-            if keytool -list -keystore app/custom.jks -storepass "$STORE_PASS" > /dev/null 2>&1; then
+            if keytool -list -keystore app/custom.jks -storepass "$STORE_PASS" ; then
               echo "Keystore store password is valid."
             else
               echo "::error::KEYSTORE_PASSWORD is incorrect or keystore corrupted!"
             fi
 
             echo "=== Checking Key Alias and Password ==="
-            if keytool -certreq -keystore app/custom.jks -alias "$ALIAS" -storepass "$STORE_PASS" -keypass "$KEY_PASS" > /dev/null 2>&1; then
+            if keytool -certreq -keystore app/custom.jks -alias "$ALIAS" -storepass "$STORE_PASS" -keypass "$KEY_PASS" ; then
               echo "Key alias and key password are valid."
             else
               echo "::error::Cannot recover key for alias '$ALIAS' with current password! Check KEY_ALIAS / KEYSTORE_PASSWORD or add KEY_PASSWORD secret if key password differs."

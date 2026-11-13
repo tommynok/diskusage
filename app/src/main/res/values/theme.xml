@@ -1,10 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme" parent="android:Theme.DeviceDefault.Light">
-        <item name="android:windowBackground">#FFFFFF</item>
-        <item name="android:colorBackground">#FFFFFF</item>
+    <style name="Theme" parent="android:Theme.DeviceDefault">
     </style>
-    <style name="Theme.NoBackground" parent="android:Theme.DeviceDefault.Light">
+    <style name="Theme.NoBackground" parent="android:Theme.DeviceDefault">
         <item name="android:windowBackground">@null</item>
     </style>
 </resources>

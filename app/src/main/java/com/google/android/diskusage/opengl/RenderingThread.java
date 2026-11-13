@@ -80,10 +80,10 @@ public class RenderingThread extends AbstractRenderingThread {
   private float max_usage;
 //  private static final Paint textBgPaint = new Paint();
   static {
-    textPaint.setColor(Color.parseColor("#111827"));
+    textPaint.setColor(Color.parseColor("#FFFFFF"));
     textPaint.setStyle(Paint.Style.FILL_AND_STROKE);
     textPaint.setFlags(textPaint.getFlags() | Paint.ANTI_ALIAS_FLAG);
-    textPaint.setShadowLayer(padding, 1, 1, Color.WHITE);
+    textPaint.setShadowLayer(padding, 1, 1, Color.BLACK);
 //    textBgPaint.setColor(Color.parseColor("#000000"));
 //    textBgPaint.setStyle(Paint.Style.STROKE);
 //    textBgPaint.setFlags(textPaint.getFlags() | Paint.ANTI_ALIAS_FLAG);
@@ -644,7 +644,7 @@ public class RenderingThread extends AbstractRenderingThread {
   @Override
   public boolean renderFrame(@NonNull GL10 gl) {
 //    renderFrameStart();
-    int color = Color.WHITE; // context.getResources().getColor(android.R.color.background_light);
+    int color = Color.GRAY; // context.getResources().getColor(android.R.color.background_light);
     float r = ((color >> 16) & 255) / 255.f;
     float g = ((color >> 8) & 255) / 255.f;
     float b = (color & 255) / 255.f;

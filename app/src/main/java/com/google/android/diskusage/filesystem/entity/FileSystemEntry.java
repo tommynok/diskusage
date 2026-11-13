@@ -77,28 +77,28 @@ public class FileSystemEntry {
   public static int elementWidth;
 
   static {
-    bg.setColor(Color.parseColor("#F4F6F8"));
-    bg_emptySpace.setColor(Color.parseColor("#DCE1E7"));
+    bg.setColor(Color.parseColor("#060118"));
+    bg_emptySpace.setColor(Color.parseColor("#063A43"));
     bg.setStyle(Paint.Style.FILL);
 //    bg.setAlpha(255);
-    fg_rect.setColor(Color.parseColor("#B0BEC5"));
+    fg_rect.setColor(Color.WHITE);
     fg_rect.setStyle(Paint.Style.STROKE);
     fg_rect.setFlags(fg_rect.getFlags() | Paint.ANTI_ALIAS_FLAG);
-//    fg_rect.setColor(Color.parseColor("#B0BEC5"));
+//    fg_rect.setColor(Color.WHITE);
 //    fg_rect.setStyle(Paint.Style.STROKE);
-    fg2.setColor(Color.parseColor("#1565C0"));
+    fg2.setColor(Color.parseColor("#18C5E7"));
     fg2.setStyle(Paint.Style.STROKE);
     fg2.setFlags(fg2.getFlags() | Paint.ANTI_ALIAS_FLAG);
     fill_bg.setColor(Color.WHITE);
     fill_bg.setStyle(Paint.Style.FILL);
-    cursor_fg.setColor(Color.parseColor("#D32F2F"));
+    cursor_fg.setColor(Color.YELLOW);
     cursor_fg.setStyle(Paint.Style.STROKE);
 
-    textPaintFolder.setColor(Color.parseColor("#111827"));
+    textPaintFolder.setColor(Color.WHITE);
     textPaintFolder.setStyle(Paint.Style.FILL_AND_STROKE);
     textPaintFolder.setFlags(textPaintFolder.getFlags() | Paint.ANTI_ALIAS_FLAG);
 
-    textPaintFile.setColor(Color.parseColor("#1D4ED8"));
+    textPaintFile.setColor(Color.parseColor("#18C5E7"));
     textPaintFile.setStyle(Paint.Style.FILL_AND_STROKE);
     textPaintFile.setFlags(textPaintFile.getFlags() | Paint.ANTI_ALIAS_FLAG);
   }

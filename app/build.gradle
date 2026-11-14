@@ -27,6 +27,7 @@ android {
             java {
                 srcDir 'src/main/java'
             }
+            jniLibs.srcDirs += [file("$buildDir/generated/jniLibs")]
         }
     }
 
@@ -81,6 +82,26 @@ android {
     externalNativeBuild {
         ndkBuild {
             path file('src/main/jni/Android.mk')
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith("merge") && task.name.endsWith("NativeLibs")) {
+        task.doFirst {
+            def extraDir = file("$buildDir/generated/jniLibs")
+            fileTree(buildDir).matching { include "**/scan" }.each { scanFile ->
+                def abi = scanFile.parentFile.name
+                def targetDir = new File(extraDir, abi)
+                targetDir.mkdirs()
+                def targetSo = new File(targetDir, "libscan.so")
+                targetSo.bytes = scanFile.bytes
+                targetSo.setExecutable(true)
+
+                def localSo = new File(scanFile.parentFile, "libscan.so")
+                localSo.bytes = scanFile.bytes
+                localSo.setExecutable(true)
+            }
         }
     }
 }

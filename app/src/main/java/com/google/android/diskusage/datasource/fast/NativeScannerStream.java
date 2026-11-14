@@ -78,35 +78,40 @@ public class NativeScannerStream extends InputStream {
       String binaryPath = getScanBinaryPath(binaryName);
       Process process = null;
 
-      if (!(rootRequired && DeviceHelper.isDeviceRooted())) {
+      boolean useRoot = rootRequired || DeviceHelper.isDeviceRooted();
+      if (useRoot) {
         try {
-          process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
+          process = runWithSu(binaryPath, root);
         } catch (IOException e) {
-          try {
-            process = Runtime.getRuntime().exec(new String[] { "/system/bin/linker64", binaryPath, root });
-          } catch (IOException e2) {
-            process = Runtime.getRuntime().exec(new String[] { "/system/bin/linker", binaryPath, root });
+          if (!rootRequired) {
+            process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
+          } else {
+            throw e;
           }
         }
       } else {
-        String cmd = "chmod 755 \"" + binaryPath + "\" 2>/dev/null; \"" + binaryPath + "\" \"" + root + "\" || /system/bin/linker64 \"" + binaryPath + "\" \"" + root + "\" || /system/bin/linker \"" + binaryPath + "\" \"" + root + "\"";
-        IOException lastException = null;
-        for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
-          try {
-            Logger.getLOGGER().d("NativeScannerStream: executing via %s: %s", su, cmd);
-            process = Runtime.getRuntime().exec(new String[] { su, "-c", cmd });
-            break;
-          } catch (IOException e) {
-            lastException = e;
-          }
-        }
-
-        if (process == null && lastException != null) {
-          throw lastException;
-        }
+        process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
       }
+
       InputStream is = process.getInputStream();
       return new NativeScannerStream(is, process);
+    }
+
+    private static Process runWithSu(String binaryPath, String root) throws IOException {
+      String cmd = "cp \"" + binaryPath + "\" /data/local/tmp/diskusage_scan 2>/dev/null; "
+                 + "chmod 755 /data/local/tmp/diskusage_scan 2>/dev/null; "
+                 + "/data/local/tmp/diskusage_scan \"" + root + "\" || \"" + binaryPath + "\" \"" + root + "\"";
+      IOException lastException = null;
+      for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
+        try {
+          Logger.getLOGGER().d("NativeScannerStream: executing via %s: %s", su, cmd);
+          return Runtime.getRuntime().exec(new String[] { su, "-c", cmd });
+        } catch (IOException e) {
+          lastException = e;
+        }
+      }
+      if (lastException != null) throw lastException;
+      throw new IOException("Failed to execute su");
     }
 
     @NonNull

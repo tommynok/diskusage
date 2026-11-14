@@ -51,59 +51,69 @@ def is_default_visible(root: str) -> bool:
     return root in {"/", "/data", "/system", "/vendor", "/product"}
 
 def main():
-    if len(sys.argv) > 1:
-        path = sys.argv[1]
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
-    else:
-        print("[*] Running 'adb shell cat /proc/mounts'...")
-        res = subprocess.run(["adb", "shell", "cat /proc/mounts"], capture_output=True, text=True)
-        if res.returncode != 0 or not res.stdout:
-            print("[!] Failed to get mounts via ADB. Check adb devices or pass a file as argument.")
-            sys.exit(1)
-        lines = res.stdout.splitlines()
-
-    total_lines = 0
-    filtered_out = []
-    real_mounts = []
-    seen = set()
-
-    for line in lines:
-        parts = line.strip().split()
-        if len(parts) < 3:
-            continue
-        total_lines += 1
-        mount_point = parts[1]
-        fs_type = parts[2]
-
-        if is_excluded_mount_point(mount_point, fs_type):
-            filtered_out.append((mount_point, fs_type))
+    try:
+        if len(sys.argv) > 1:
+            path = sys.argv[1]
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
         else:
-            if mount_point not in seen:
-                seen.add(mount_point)
-                real_mounts.append((mount_point, fs_type))
+            print("[*] Подключение через ADB и чтение /proc/mounts...")
+            res = subprocess.run(["adb", "shell", "cat /proc/mounts"], capture_output=True, text=True)
+            if res.returncode != 0 or not res.stdout:
+                print("\n[!] Ошибка: Не удалось прочитать данные через ADB.")
+                print("    Проверьте, что телефон подключен по USB и включена отладка.")
+                return
+            lines = res.stdout.splitlines()
 
-    default_visible = [m for m, fs in real_mounts if is_default_visible(m)]
-    optional = [m for m, fs in real_mounts if not is_default_visible(m)]
+        total_lines = 0
+        filtered_out = []
+        real_mounts = []
+        seen = set()
 
-    print(f"\n=== DiskUsage Mount Point Filter Report ===")
-    print(f"Total raw mount points in /proc/mounts: {total_lines}")
-    print(f"Filtered out as noise/pseudo/sub-mounts: {len(filtered_out)}")
-    print(f"Clean partitions retained: {len(real_mounts)}")
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) < 3:
+                continue
+            total_lines += 1
+            mount_point = parts[1]
+            fs_type = parts[2]
 
-    print(f"\n[+] DEFAULT VISIBLE PARTITIONS ({len(default_visible)}):")
-    for m in default_visible:
-        print(f"    * {m}")
+            if is_excluded_mount_point(mount_point, fs_type):
+                filtered_out.append((mount_point, fs_type))
+            else:
+                if mount_point not in seen:
+                    seen.add(mount_point)
+                    real_mounts.append((mount_point, fs_type))
 
-    print(f"\n[+] OPTIONAL PARTITIONS IN 'Настройка видимых разделов' ({len(optional)}):")
-    for m in optional:
-        print(f"    * {m}")
+        default_visible = [m for m, fs in real_mounts if is_default_visible(m)]
+        optional = [m for m, fs in real_mounts if not is_default_visible(m)]
 
-    print("\n[+] NOISE SAMPLES FILTERED OUT:")
-    for m, fs in filtered_out[:10]:
-        print(f"    - {m} ({fs})")
-    if len(filtered_out) > 10:
-        print(f"    ... and {len(filtered_out) - 10} more.")
+        print(f"\n=== Отчет симуляции фильтрации DiskUsage ===")
+        print(f"Всего строк в /proc/mounts: {total_lines}")
+        print(f"Отфильтровано как системный шум: {len(filtered_out)}")
+        print(f"Реальных разделов сохранено: {len(real_mounts)}")
+
+        print(f"\n[+] РАЗДЕЛЫ ПО УМОЛЧАНИЮ В ГЛАВНОМ МЕНЮ ({len(default_visible)}):")
+        for m in default_visible:
+            print(f"    * {m}")
+
+        print(f"\n[+] ОПЦИОНАЛЬНЫЕ РАЗДЕЛЫ В 'Настройка видимых разделов' ({len(optional)}):")
+        for m in optional:
+            print(f"    * {m}")
+
+        print("\n[+] ПРИМЕРЫ ОТФИЛЬТРОВАННОГО ШУМА (первые 10):")
+        for m, fs in filtered_out[:10]:
+            print(f"    - {m} ({fs})")
+        if len(filtered_out) > 10:
+            print(f"    ... и еще {len(filtered_out) - 10} записей.")
+    except Exception as e:
+        print(f"\n[!] Произошла ошибка: {e}")
+    finally:
+        # Prevent window from instantly closing when launched via double-click on Windows
+        try:
+            input("\nНажмите Enter, чтобы закрыть окно...")
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     main()

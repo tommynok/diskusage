@@ -6,3 +6,5 @@
 /DiskUsage.iml
 /app/app.iml
 app/custom.jks
+tools/*.txt
+tools/*.apk

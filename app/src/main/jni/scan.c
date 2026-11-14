@@ -91,7 +91,10 @@ struct Entity *make_entity(const char *path) {
   if (res < 0) {
     return NULL;
   }
-  if (stbuf.st_dev != dev) {
+  // Only skip directories that cross into different mount points / filesystems.
+  // Regular files inside overlayfs (e.g. KernelSU / Magisk modules) can have
+  // a different st_dev (from the lowerdir physical filesystem) and must NOT be skipped!
+  if (S_ISDIR(stbuf.st_mode) && stbuf.st_dev != dev) {
     return NULL;
   }
   return make_entity_internal(path, &stbuf);

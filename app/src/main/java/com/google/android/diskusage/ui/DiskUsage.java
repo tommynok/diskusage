@@ -524,6 +524,7 @@ public class DiskUsage extends LoadableActivity {
       rootElement = scanner.scan(mountPoint);
       handler.removeCallbacks(progressUpdater);
     } catch (RuntimeException e) {
+      Logger.getLOGGER().e("DiskUsage: Native scanner failed, falling back to Java scanner", e);
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(scanner, stats);
       handler.post(progressUpdater);

@@ -19,6 +19,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     private static final int MENU_DESELECT_ALL = 1;
     private static final int MENU_SELECT_ALL = 2;
     private static final int MENU_ESSENTIAL_ONLY = 3;
+    private static final int MENU_TOGGLE_UNFILTERED = 4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,12 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
         menu.add(0, MENU_ESSENTIAL_ONLY, 2, R.string.action_essential_only)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+
+        SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+        boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
+        menu.add(0, MENU_TOGGLE_UNFILTERED, 3,
+            showUnfiltered ? R.string.action_hide_unfiltered : R.string.action_show_unfiltered)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
         return true;
     }
 
@@ -64,6 +71,14 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
             }
             savePreferences();
             return true;
+        } else if (item.getItemId() == MENU_TOGGLE_UNFILTERED) {
+            savePreferences();
+            SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+            boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
+            shprefs.edit().putBoolean("show_unfiltered", !showUnfiltered).apply();
+            invalidateOptionsMenu();
+            onResume();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -90,9 +105,11 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     private void savePreferences() {
         PreferenceScreen prefs = getPreferenceScreen();
         SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+        boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
         SharedPreferences.Editor editor = shprefs.edit();
         editor.clear();
         editor.putBoolean("initialized", true);
+        editor.putBoolean("show_unfiltered", showUnfiltered);
 
         for (int i = 0; i < prefs.getPreferenceCount(); i++) {
             CheckBoxPreference pref = (CheckBoxPreference) prefs.getPreference(i);

@@ -104,4 +104,6 @@
     <string name="action_select_all">Select all</string>
     <string name="action_deselect_all">Deselect all</string>
     <string name="action_essential_only">Essential only</string>
+    <string name="action_show_unfiltered">Show all mounts (unfiltered)</string>
+    <string name="action_hide_unfiltered">Hide virtual mounts (clean mode)</string>
 </resources>

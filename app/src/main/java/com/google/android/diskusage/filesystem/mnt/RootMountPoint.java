@@ -152,14 +152,24 @@ public class RootMountPoint extends MountPoint {
   }
 
   private static List<MountPoint> rootedMountPoints = new ArrayList<>();
+  private static List<MountPoint> rawMountPoints = new ArrayList<>();
   private static Map<String, MountPoint> rootedMountPointForKey = new HashMap<>();
   private static boolean init = false;
   public static int checksum = 0;
 
 
   public static List<MountPoint> getRootedMountPoints(Context context) {
+    if (context != null) {
+      SharedPreferences prefs = context.getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+      boolean showUnfiltered = prefs.getBoolean("show_unfiltered", false);
+      return getRootedMountPoints(context, showUnfiltered);
+    }
+    return getRootedMountPoints(context, false);
+  }
+
+  public static List<MountPoint> getRootedMountPoints(Context context, boolean showUnfiltered) {
     initMountPoints(context);
-    return rootedMountPoints;
+    return showUnfiltered ? rawMountPoints : rootedMountPoints;
   }
 
   public static MountPoint getForKey(Context context, String key) {
@@ -184,11 +194,13 @@ public class RootMountPoint extends MountPoint {
         Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Mount point: " + mountPoint);
         String fsType = parts[2];
 
-        if (!isExcludedMountPoint(mountPoint, fsType)) {
-          if (!rootedMountPointForKey.containsKey("rooted:" + mountPoint)) {
-            MountPoint m = new RootMountPoint(mountPoint, fsType);
+        if (!rootedMountPointForKey.containsKey("rooted:" + mountPoint)) {
+          MountPoint m = new RootMountPoint(mountPoint, fsType);
+          rawMountPoints.add(m);
+          rootedMountPointForKey.put(m.getKey(), m);
+
+          if (!isExcludedMountPoint(mountPoint, fsType)) {
             rootedMountPoints.add(m);
-            rootedMountPointForKey.put(m.getKey(), m);
           }
         }
       }
@@ -200,6 +212,7 @@ public class RootMountPoint extends MountPoint {
 
   public static void reset() {
     rootedMountPoints = new ArrayList<>();
+    rawMountPoints = new ArrayList<>();
     rootedMountPointForKey = new HashMap<>();
     init = false;
   }

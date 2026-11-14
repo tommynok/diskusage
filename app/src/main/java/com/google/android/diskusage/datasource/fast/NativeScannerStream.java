@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.fast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import androidx.annotation.NonNull;
@@ -34,6 +35,23 @@ public class NativeScannerStream extends InputStream {
     return is.read(buffer, byteOffset, byteCount);
   }
 
+  public String getErrorOutput() {
+    try {
+      InputStream es = process.getErrorStream();
+      if (es != null) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        while (es.available() > 0) {
+          int read = es.read(buf);
+          if (read <= 0) break;
+          baos.write(buf, 0, read);
+        }
+        return baos.toString("UTF-8").trim();
+      }
+    } catch (Throwable ignored) {}
+    return "";
+  }
+
   @Override
   public void close() throws IOException {
     is.close();
@@ -64,7 +82,7 @@ public class NativeScannerStream extends InputStream {
         process = Runtime.getRuntime().exec(new String[] {
                 binaryPath, root});
       } else {
-        String cmd = "chmod 755 " + binaryPath + " && " + binaryPath + " " + root;
+        String cmd = "chmod 755 \"" + binaryPath + "\" 2>/dev/null; \"" + binaryPath + "\" \"" + root + "\"";
         IOException lastException = null;
         for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
           try {

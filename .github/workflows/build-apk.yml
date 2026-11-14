@@ -70,6 +70,17 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease assembleDebug --stacktrace
 
+      - name: Inspect libscan.so in Release APK
+        run: |
+          echo "=== Scanning APK for native binaries ==="
+          unzip -l app/build/outputs/apk/release/*.apk | grep libscan || true
+          mkdir -p /tmp/apk_inspect
+          unzip -p app/build/outputs/apk/release/*.apk lib/arm64-v8a/libscan.so > /tmp/apk_inspect/libscan.so || true
+          if [ -s /tmp/apk_inspect/libscan.so ]; then
+            file /tmp/apk_inspect/libscan.so || true
+            readelf -h /tmp/apk_inspect/libscan.so | grep -E "Type:|Entry point" || true
+          fi
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:

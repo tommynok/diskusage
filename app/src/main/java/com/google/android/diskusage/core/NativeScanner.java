@@ -101,7 +101,11 @@ public class NativeScanner implements ProgressGenerator {
     }
     int res = is.read(buffer, allocated, Math.min(bufsize - allocated, 256));
     if (res <= 0) {
-      throw new RuntimeException("Error: no more data");
+      String errorMsg = "";
+      if (is instanceof NativeScannerStream) {
+        errorMsg = ((NativeScannerStream) is).getErrorOutput();
+      }
+      throw new RuntimeException("Error: no more data" + (errorMsg.isEmpty() ? "" : ", stderr: " + errorMsg));
     }
     allocated += res;
   }
@@ -187,7 +191,7 @@ public class NativeScanner implements ProgressGenerator {
 
   public FileSystemEntry scan(@NonNull MountPoint mountPoint) throws IOException, InterruptedException {
     is = NativeScannerStream.Factory.create(mountPoint.getRoot(), mountPoint.isRootRequired());
-    // while (getByte() != 0);
+    while (getByte() != 0);
 
     Type type = getType();
     if (type != Type.DIR) throw new RuntimeException("Error: no mount point");

@@ -7,7 +7,6 @@
 #include <dirent.h>
 #include <stdlib.h>
 
-
 dev_t dev;
 static const int sep = 0;
 
@@ -22,7 +21,13 @@ struct Entity {
 void scan_dir(const char *path, struct Entity *entity);
 
 const char *getName(const char *path) {
-  return strrchr(path, '/') + 1;
+  const char *res = strrchr(path, '/');
+  if (res == NULL) return path;
+  if (*(res + 1) == '\0') {
+    if (res == path) return "/";
+    return res;
+  }
+  return res + 1;
 }
 
 int nfiles = 0;
@@ -95,11 +100,17 @@ struct Entity *make_entity(const char *path) {
 char *makePath(const char *base, const char *name) {
   int baseLen = strlen(base);
   int nameLen = strlen(name);
-  char *res = (char*) malloc(baseLen + nameLen + 2);
-  strncpy(res, base, baseLen);
-  res[baseLen] = '/';
-  strncpy(res + baseLen + 1, name, nameLen);
-  res[baseLen + 1 + nameLen] = 0;
+  int slashNeeded = (baseLen > 0 && base[baseLen - 1] == '/') ? 0 : 1;
+  char *res = (char*) malloc(baseLen + slashNeeded + nameLen + 1);
+  memcpy(res, base, baseLen);
+  if (slashNeeded) {
+    res[baseLen] = '/';
+    memcpy(res + baseLen + 1, name, nameLen);
+    res[baseLen + 1 + nameLen] = 0;
+  } else {
+    memcpy(res + baseLen, name, nameLen);
+    res[baseLen + nameLen] = 0;
+  }
   return res;
 }
 
@@ -108,7 +119,7 @@ void scan_dir(const char *path, struct Entity *dirEntity) {
   struct Entity *e;
   struct Entity *curr;
   struct Entity *prev;
-  struct Entity *first;
+  struct Entity *first = NULL;
   struct Entity **last = &first;
 
   if (dir == NULL) {
@@ -162,21 +173,31 @@ void scan_tree(const char *path) {
   if (res == -1) {
     dump_error('D', path, 1, 0);
     dump('Z');
+    fflush(stdout);
     return;
   }
   dev = stbuf.st_dev;
   scan_dir(path, make_entity_internal(path, &stbuf));
+  fflush(stdout);
 }
 
 int main(int argc, char **argv) {
-  if (argv[1] == 0) {
-    printf("Need directory argument\n");
+  if (argc < 2 || argv[1] == NULL) {
+    fprintf(stderr, "Need directory argument\n");
     exit(1);
   }
   if (strchr(argv[1], '/') == NULL) {
-    printf("Need absolute path\n");
+    fprintf(stderr, "Need absolute path\n");
     exit(1);
   }
+  char *path = argv[1];
+  int len = strlen(path);
+  while (len > 1 && path[len - 1] == '/') {
+    path[len - 1] = '\0';
+    len--;
+  }
   putchar(0);
-  scan_tree(argv[1]);
+  fflush(stdout);
+  scan_tree(path);
+  return 0;
 }

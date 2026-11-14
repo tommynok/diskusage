@@ -21,7 +21,7 @@
     <string name="app_name">DiskUsage</string>
     <string name="app_description">Утилита для анализа занятого пространства на диске и его очистки.</string>
     <string name="scaning_directories">Сканирование папок...</string>
-    <string name="button_show">Показать</string>
+    <string name="button_show">Открыть</string>
     <string name="button_delete">Удалить</string>
     <string name="button_cancel">Отмена</string>
     <string name="button_rescan">Обновить</string>

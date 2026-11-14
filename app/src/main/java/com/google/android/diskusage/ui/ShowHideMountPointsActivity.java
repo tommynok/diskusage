@@ -14,8 +14,6 @@ import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
 import com.google.android.diskusage.ui.DiskUsage.FileSystemStats;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ShowHideMountPointsActivity extends PreferenceActivity {
     private static final int MENU_DESELECT_ALL = 1;
@@ -62,22 +60,12 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
             for (int i = 0; i < count; i++) {
                 CheckBoxPreference pref = (CheckBoxPreference) prefs.getPreference(i);
                 String path = pref.getTitle().toString();
-                pref.setChecked(isEssentialPath(path));
+                pref.setChecked(RootMountPoint.isDefaultVisible(path));
             }
             savePreferences();
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private boolean isEssentialPath(String path) {
-        if (path.equals("/") || path.equals("/data") || path.equals("/system")) {
-            return true;
-        }
-        if (path.startsWith("/storage/") && !path.contains("/Android/")) {
-            return true;
-        }
-        return false;
     }
 
     @Override
@@ -87,8 +75,6 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
         PreferenceScreen prefs = getPreferenceScreen();
         prefs.removeAll();
         SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-        Map<String, ?> ignoreList = shprefs.getAll();
-        Set<String> ignores = ignoreList.keySet();
 
         for (MountPoint mountPoint : mountPoints) {
             CheckBoxPreference pref = new CheckBoxPreference(this);
@@ -96,7 +82,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
             FileSystemStats stats = new FileSystemStats(mountPoint);
             pref.setSummary(stats.formatUsageInfo());
             pref.setTitle(mountPoint.getRoot());
-            pref.setChecked(!ignores.contains(mountPoint.getRoot()));
+            pref.setChecked(RootMountPoint.isMountPointVisible(shprefs, mountPoint.getRoot()));
             prefs.addPreference(pref);
         }
     }
@@ -106,6 +92,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
         SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = shprefs.edit();
         editor.clear();
+        editor.putBoolean("initialized", true);
 
         for (int i = 0; i < prefs.getPreferenceCount(); i++) {
             CheckBoxPreference pref = (CheckBoxPreference) prefs.getPreference(i);

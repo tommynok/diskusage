@@ -120,19 +120,10 @@ public class SelectActivity extends Activity {
     }
 
     if (DeviceHelper.isDeviceRooted()) {
-      SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-      Map<String, ?> ignoreList = prefs.getAll();
-      if (!ignoreList.keySet().isEmpty()) {
-        Set<String> ignores = ignoreList.keySet();
+      SharedPreferences prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+      if (prefs.contains("initialized") || expandRootMountPoints) {
         for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
-          if (ignores.contains(mountPoint.getRoot())) continue;
-          options.add(mountPoint.getRoot());
-          actionList.add(new DiskUsageAction(mountPoint));
-        }
-        options.add(getString(R.string.option_show_hide));
-        actionList.add(new ShowHideAction());
-      } else if (expandRootMountPoints) {
-        for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
+          if (!RootMountPoint.isMountPointVisible(prefs, mountPoint.getRoot())) continue;
           options.add(mountPoint.getRoot());
           actionList.add(new DiskUsageAction(mountPoint));
         }
@@ -144,7 +135,6 @@ public class SelectActivity extends Activity {
           expandRootMountPoints = true;
           makeDialog();
         });
-
       }
     }
 

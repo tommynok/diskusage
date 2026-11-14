@@ -20,13 +20,17 @@
 package com.google.android.diskusage.filesystem.mnt;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import com.google.android.diskusage.utils.IOHelper;
 import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class RootMountPoint extends MountPoint {
   // private final String fsType;
@@ -54,6 +58,97 @@ public class RootMountPoint extends MountPoint {
   @Override
   public String getKey() {
       return "rooted:" + getRoot();
+  }
+
+  private static final Set<String> IGNORED_FS_TYPES = new HashSet<>(Arrays.asList(
+      "proc", "sysfs", "devpts", "cgroup", "cgroup2", "selinuxfs",
+      "bpf", "tracefs", "pstore", "debugfs", "configfs", "functionfs",
+      "fusectl", "binder", "vndbinder", "hwbinder", "rootfs", "rpc_pipefs",
+      "ramfs"
+  ));
+
+  public static boolean isExcludedMountPoint(String mountPoint, String fsType) {
+    if (mountPoint == null || mountPoint.isEmpty()) {
+      return true;
+    }
+
+    if (IGNORED_FS_TYPES.contains(fsType)) {
+      return true;
+    }
+
+    // Root directory is always valid
+    if (mountPoint.equals("/")) {
+      return false;
+    }
+
+    // Virtual and system-internal directories
+    if (mountPoint.equals("/proc") || mountPoint.startsWith("/proc/")) return true;
+    if (mountPoint.equals("/sys") || mountPoint.startsWith("/sys/")) return true;
+    if (mountPoint.equals("/dev") || mountPoint.startsWith("/dev/")) return true;
+    if (mountPoint.equals("/apex") || mountPoint.startsWith("/apex/")) return true;
+    if (mountPoint.equals("/acct") || mountPoint.startsWith("/acct/")) return true;
+    if (mountPoint.equals("/config") || mountPoint.startsWith("/config/")) return true;
+    if (mountPoint.equals("/linkerconfig") || mountPoint.startsWith("/linkerconfig/")) return true;
+    if (mountPoint.equals("/bootstrap-apex") || mountPoint.startsWith("/bootstrap-apex/")) return true;
+    if (mountPoint.equals("/debug_ramdisk") || mountPoint.startsWith("/debug_ramdisk/")) return true;
+    if (mountPoint.equals("/data_mirror") || mountPoint.startsWith("/data_mirror/")) return true;
+
+    // FUSE / Storage Manager permission views and internal mirrors
+    if (mountPoint.startsWith("/mnt/installer")) return true;
+    if (mountPoint.startsWith("/mnt/androidwritable")) return true;
+    if (mountPoint.startsWith("/mnt/user")) return true;
+    if (mountPoint.startsWith("/mnt/pass_through")) return true;
+    if (mountPoint.startsWith("/mnt/runtime")) return true;
+    if (mountPoint.startsWith("/mnt/asec")) return true;
+    if (mountPoint.startsWith("/mnt/media_rw")) return true;
+    if (mountPoint.equals("/mnt")) return true;
+
+    // Primary and secondary storage cards (handled separately by MountPoint.getMountPoints())
+    if (mountPoint.equals("/storage") || mountPoint.startsWith("/storage/")) return true;
+
+    // Sub-mounts inside /data (user data, app sandboxes, dalvik, adb modules, profiles)
+    // because scanning /data covers everything inside /data.
+    if (mountPoint.startsWith("/data/")) return true;
+
+    // Sub-mounts inside top-level partitions (e.g. /system/etc/hosts, /product/app/YouTube)
+    if (mountPoint.startsWith("/system/")) return true;
+    if (mountPoint.startsWith("/product/")) return true;
+    if (mountPoint.startsWith("/system_ext/")) return true;
+    if (mountPoint.startsWith("/odm/")) return true;
+
+    // Under /vendor/, preserve Qualcomm firmware partitions: /vendor/firmware_mnt, /vendor/dsp, /vendor/bt_firmware
+    // and ignore other arbitrary bind-mounts
+    if (mountPoint.startsWith("/vendor/")) {
+      if (!mountPoint.equals("/vendor/firmware_mnt")
+          && !mountPoint.equals("/vendor/dsp")
+          && !mountPoint.equals("/vendor/bt_firmware")) {
+        return true;
+      }
+    }
+
+    // Single-file bind mounts
+    if (mountPoint.endsWith(".apk") || mountPoint.endsWith(".xml") || mountPoint.endsWith(".so")
+        || mountPoint.endsWith(".conf") || mountPoint.endsWith(".prop")
+        || mountPoint.endsWith("/hosts")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public static boolean isDefaultVisible(String root) {
+    return root.equals("/")
+        || root.equals("/data")
+        || root.equals("/system")
+        || root.equals("/vendor")
+        || root.equals("/product");
+  }
+
+  public static boolean isMountPointVisible(SharedPreferences prefs, String root) {
+    if (prefs != null && prefs.contains("initialized")) {
+      return !prefs.getBoolean(root, false);
+    }
+    return isDefaultVisible(root);
   }
 
   private static List<MountPoint> rootedMountPoints = new ArrayList<>();
@@ -89,10 +184,12 @@ public class RootMountPoint extends MountPoint {
         Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Mount point: " + mountPoint);
         String fsType = parts[2];
 
-        if (!mountPoint.startsWith("/mnt/asec/")) {
-          MountPoint m = new RootMountPoint(mountPoint, fsType);
-          rootedMountPoints.add(m);
-          rootedMountPointForKey.put(m.getKey(), m);
+        if (!isExcludedMountPoint(mountPoint, fsType)) {
+          if (!rootedMountPointForKey.containsKey("rooted:" + mountPoint)) {
+            MountPoint m = new RootMountPoint(mountPoint, fsType);
+            rootedMountPoints.add(m);
+            rootedMountPointForKey.put(m.getKey(), m);
+          }
         }
       }
       reader.close();
@@ -100,28 +197,6 @@ public class RootMountPoint extends MountPoint {
       Logger.getLOGGER().e("RootMountPoint.initMountPoints(): Failed to get mount points", e);
     }
   }
-
-//  private static final String file =
-//    "rootfs / rootfs ro,relatime 0 0\n" +
-//    "tmpfs /dev tmpfs rw,relatime,mode=755 0 0\n" +
-//    "devpts /dev/pts devpts rw,relatime,mode=600 0 0\n" +
-//    "proc /proc proc rw,relatime 0 0\n" +
-//    "sysfs /sys sysfs rw,relatime 0 0\n" +
-//    "none /acct cgroup rw,relatime,cpuacct 0 0\n" +
-//    "tmpfs /mnt/asec tmpfs rw,relatime,mode=755,gid=1000 0 0\n" +
-//    "none /dev/cpuctl cgroup rw,relatime,cpu 0 0\n" +
-//    "/dev/block/mtdblock3 /system yaffs2 ro,relatime 0 0\n" +
-//    "/dev/block/mtdblock5 /data yaffs2 rw,nosuid,nodev,relatime 0 0\n" +
-//    "/dev/block/mtdblock4 /cache yaffs2 rw,nosuid,nodev,relatime 0 0\n" +
-//    "/sys/kernel/debug /sys/kernel/debug debugfs rw,relatime 0 0\n" +
-//    "/dev/block/vold/179:1 /mnt/sdcard vfat rw,dirsync,nosuid,nodev,noexec,relatime,uid=1000,gid=1015,fmask=0702,dmask=0702,allow_utime=0020,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "/dev/block/vold/179:1 /mnt/secure/asec vfat rw,dirsync,nosuid,nodev,noexec,relatime,uid=1000,gid=1015,fmask=0702,dmask=0702,allow_utime=0020,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "tmpfs /mnt/sdcard/.android_secure tmpfs ro,relatime,size=0k,mode=000 0 0\n" +
-//    "/dev/block/dm-0 /mnt/asec/com.dasur.language.rus.pack-1 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "/dev/block/dm-1 /mnt/asec/net.bytten.xkcdviewer-1 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "/dev/block/dm-2 /mnt/asec/zok.android.shapes-2 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "/dev/block/dm-3 /mnt/asec/net.hexage.everlands-1 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
-//    "/dev/block/dm-3 /mnt/sdcard/maps ext2 ro,relatime,size=0k,mode=000 0 0\n";
 
   public static void reset() {
     rootedMountPoints = new ArrayList<>();

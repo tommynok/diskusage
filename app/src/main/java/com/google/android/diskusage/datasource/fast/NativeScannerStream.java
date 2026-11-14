@@ -79,10 +79,17 @@ public class NativeScannerStream extends InputStream {
       Process process = null;
 
       if (!(rootRequired && DeviceHelper.isDeviceRooted())) {
-        process = Runtime.getRuntime().exec(new String[] {
-                binaryPath, root});
+        try {
+          process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
+        } catch (IOException e) {
+          try {
+            process = Runtime.getRuntime().exec(new String[] { "/system/bin/linker64", binaryPath, root });
+          } catch (IOException e2) {
+            process = Runtime.getRuntime().exec(new String[] { "/system/bin/linker", binaryPath, root });
+          }
+        }
       } else {
-        String cmd = "chmod 755 \"" + binaryPath + "\" 2>/dev/null; \"" + binaryPath + "\" \"" + root + "\"";
+        String cmd = "chmod 755 \"" + binaryPath + "\" 2>/dev/null; \"" + binaryPath + "\" \"" + root + "\" || /system/bin/linker64 \"" + binaryPath + "\" \"" + root + "\" || /system/bin/linker \"" + binaryPath + "\" \"" + root + "\"";
         IOException lastException = null;
         for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
           try {

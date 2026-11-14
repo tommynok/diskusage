@@ -30,6 +30,22 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;25.2.9519653"
 
+      - name: Build Native Executables into jniLibs
+        run: |
+          NDK_DIR="$ANDROID_HOME/ndk/25.2.9519653"
+          "$NDK_DIR/ndk-build" -C app/src/main/jni NDK_PROJECT_PATH=null NDK_APPLICATION_MK=Application.mk APP_BUILD_SCRIPT=Android.mk NDK_OUT=../build/ndk-out
+          mkdir -p app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/armeabi-v7a app/src/main/jniLibs/x86 app/src/main/jniLibs/x86_64
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+            if [ -f "app/build/ndk-out/local/$abi/scan" ]; then
+              cp "app/build/ndk-out/local/$abi/scan" "app/src/main/jniLibs/$abi/libscan.so"
+              chmod 755 "app/src/main/jniLibs/$abi/libscan.so"
+              echo "Built executable for $abi: $(file app/src/main/jniLibs/$abi/libscan.so)"
+            else
+              echo "Error: app/build/ndk-out/local/$abi/scan not found!"
+              exit 1
+            fi
+          done
+
       - name: Decode Custom Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}

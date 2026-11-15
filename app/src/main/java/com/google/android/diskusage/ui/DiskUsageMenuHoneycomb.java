@@ -43,7 +43,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
 
 
   public void setShowAsAction(@NonNull MenuItem item) {
-    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
   }
   
   @Override

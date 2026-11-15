@@ -60,6 +60,8 @@ public class FileSystemEntry {
   private static String dir_name_size_num_dirs;
   private static String dir_empty;
   private static String dir_name_size;
+  private static String subtitle_size_num_dirs;
+  private static String dir_empty_subtitle;
   public static FileSystemEntry deletedEntry;
 
   public boolean hasChildren() {
@@ -948,6 +950,20 @@ public class FileSystemEntry {
 //    else return parent.relativePath(root) + "/" + res;
 //  }
 
+  public final String toSubtitleString() {
+    String sizeString0 = sizeString();
+    if (children != null && children.length != 0) {
+      if (subtitle_size_num_dirs != null) {
+        return String.format(subtitle_size_num_dirs, sizeString0, children.length);
+      }
+      return sizeString0 + " \u2022 " + children.length;
+    } else if (getSizeInBlocks() == 0) {
+      return dir_empty_subtitle != null ? dir_empty_subtitle : sizeString0;
+    } else {
+      return sizeString0;
+    }
+  }
+
   public final String toTitleString() {
     String sizeString0 = sizeString();
     if (children != null && children.length != 0)
@@ -1155,6 +1171,8 @@ public class FileSystemEntry {
     dir_name_size_num_dirs = context.getString(R.string.dir_name_size_num_dirs);
     dir_empty = context.getString(R.string.dir_empty);
     dir_name_size = context.getString(R.string.dir_name_size);
+    subtitle_size_num_dirs = context.getString(R.string.subtitle_size_num_dirs);
+    dir_empty_subtitle = context.getString(R.string.dir_empty_subtitle);
   }
 
   public static void updateFontsLegacy(Context context) {

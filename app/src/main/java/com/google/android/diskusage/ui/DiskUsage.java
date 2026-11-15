@@ -117,6 +117,24 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
             mountPoint.getRoot(), receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
+    getWindow().getDecorView().post(() -> {
+      int resId = getResources().getIdentifier("action_bar", "id", "android");
+      if (resId != 0) {
+        android.view.View abView = findViewById(resId);
+        if (abView != null) {
+          abView.setOnLongClickListener(v -> {
+            if (currentSelectedEntity != null) {
+              String p = currentSelectedEntity.absolutePath();
+              if (p != null && !p.isEmpty()) {
+                android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
+                return true;
+              }
+            }
+            return false;
+          });
+        }
+      }
+    });
   }
 
   ArrayList<Runnable> afterLoadAction = new ArrayList<>();
@@ -385,9 +403,19 @@ public class DiskUsage extends LoadableActivity {
     finish();
   }
 
+  private FileSystemEntry currentSelectedEntity;
+
   public void setSelectedEntity(FileSystemEntry position) {
+    this.currentSelectedEntity = position;
     menu.update(position);
-    setTitle(getString(R.string.title_for_path, position.toTitleString()));
+    if (position == null) return;
+    android.app.ActionBar ab = getActionBar();
+    if (ab != null) {
+      ab.setTitle(position.name);
+      ab.setSubtitle(position.toSubtitleString());
+    } else {
+      setTitle(getString(R.string.title_for_path, position.toTitleString()));
+    }
   }
 
   @Override

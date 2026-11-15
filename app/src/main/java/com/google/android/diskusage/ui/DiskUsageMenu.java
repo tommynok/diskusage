@@ -105,6 +105,7 @@ public abstract class DiskUsageMenu {
     searchMenuItem = makeSearchMenuEntry(menu);
 
     showMenuItem = menu.add(getString(R.string.button_show));
+    showMenuItem.setIcon(R.drawable.ic_action_open);
     showMenuItem.setOnMenuItemClickListener(item -> {
       if (selectedEntity != null) {
         diskusage.view(selectedEntity);

@@ -106,4 +106,6 @@
     <string name="action_essential_only">Essential only</string>
     <string name="action_show_unfiltered">Unfiltered mode</string>
     <string name="action_hide_unfiltered">Default mode</string>
+    <string name="subtitle_size_num_dirs">%1$s • %2$d dirs</string>
+    <string name="dir_empty_subtitle">0 B (empty)</string>
 </resources>

@@ -52,6 +52,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.google.android.diskusage.databinding.ActivityDiskusageBinding;
+import com.google.android.diskusage.databinding.ActionBarDiskusageBinding;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
@@ -121,24 +122,7 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
             mountPoint.getRoot(), receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
-    getWindow().getDecorView().post(() -> {
-      int resId = getResources().getIdentifier("action_bar", "id", "android");
-      if (resId != 0) {
-        android.view.View abView = findViewById(resId);
-        if (abView != null) {
-          abView.setOnLongClickListener(v -> {
-            if (currentSelectedEntity != null) {
-              String p = currentSelectedEntity.absolutePath();
-              if (p != null && !p.isEmpty()) {
-                android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
-                return true;
-              }
-            }
-            return false;
-          });
-        }
-      }
-    });
+    initActionBar();
   }
 
   ArrayList<Runnable> afterLoadAction = new ArrayList<>();
@@ -409,6 +393,46 @@ public class DiskUsage extends LoadableActivity {
 
   private FileSystemEntry currentSelectedEntity;
   private ActivityDiskusageBinding diskUsageBinding;
+  private ActionBarDiskusageBinding abBinding;
+
+  private void initActionBar() {
+    android.app.ActionBar ab = getActionBar();
+    if (ab != null) {
+      ab.setDisplayHomeAsUpEnabled(true);
+      ab.setDisplayShowTitleEnabled(false);
+      ab.setDisplayShowCustomEnabled(true);
+      abBinding = ActionBarDiskusageBinding.inflate(getLayoutInflater());
+      android.app.ActionBar.LayoutParams lp = new android.app.ActionBar.LayoutParams(
+          android.app.ActionBar.LayoutParams.MATCH_PARENT,
+          android.app.ActionBar.LayoutParams.MATCH_PARENT
+      );
+      ab.setCustomView(abBinding.getRoot(), lp);
+
+      abBinding.customBarLayout.setOnClickListener(v -> {
+        if (currentSelectedEntity != null) {
+          String p = currentSelectedEntity.absolutePath();
+          if (p != null && !p.isEmpty()) {
+            android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
+          }
+        }
+      });
+
+      abBinding.customBarLayout.setOnLongClickListener(v -> {
+        if (currentSelectedEntity != null) {
+          String p = currentSelectedEntity.absolutePath();
+          if (p != null && !p.isEmpty()) {
+            android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cb != null) {
+              cb.setPrimaryClip(android.content.ClipData.newPlainText("path", p));
+              android.widget.Toast.makeText(DiskUsage.this, getString(R.string.path_copied, p), android.widget.Toast.LENGTH_SHORT).show();
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+    }
+  }
 
   public void attachGraphView(View view) {
     if (diskUsageBinding == null) {
@@ -420,41 +444,22 @@ public class DiskUsage extends LoadableActivity {
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     view.requestFocus();
 
-    diskUsageBinding.infoBanner.setOnClickListener(v -> {
-      if (currentSelectedEntity != null) {
-        String p = currentSelectedEntity.absolutePath();
-        if (p != null && !p.isEmpty()) {
-          android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
-        }
-      }
-    });
-
-    diskUsageBinding.infoBanner.setOnLongClickListener(v -> {
-      if (currentSelectedEntity != null) {
-        String p = currentSelectedEntity.absolutePath();
-        if (p != null && !p.isEmpty()) {
-          android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-          if (cb != null) {
-            cb.setPrimaryClip(android.content.ClipData.newPlainText("path", p));
-            android.widget.Toast.makeText(DiskUsage.this, getString(R.string.path_copied, p), android.widget.Toast.LENGTH_SHORT).show();
-            return true;
-          }
-        }
-      }
-      return false;
-    });
-
     if (currentSelectedEntity != null) {
-      updateInfoBanner(currentSelectedEntity);
+      updateBarInfo(currentSelectedEntity);
     }
   }
 
-  public void updateInfoBanner(FileSystemEntry position) {
-    if (diskUsageBinding == null || position == null) return;
-    MountPoint mp = MountPoint.getForKey(this, key);
-    String breadcrumb = getBreadcrumbPath(position, mp);
-    diskUsageBinding.infoPath.setText(breadcrumb);
-    diskUsageBinding.infoStats.setText(position.toSubtitleString());
+  public void updateBarInfo(FileSystemEntry position) {
+    if (position == null) return;
+    if (abBinding == null) {
+      initActionBar();
+    }
+    if (abBinding != null) {
+      MountPoint mp = MountPoint.getForKey(this, key);
+      String breadcrumb = getBreadcrumbPath(position, mp);
+      abBinding.barPath.setText(breadcrumb);
+      abBinding.barStats.setText(position.toSubtitleString());
+    }
   }
 
   private String getBreadcrumbPath(FileSystemEntry entry, MountPoint mp) {
@@ -502,17 +507,7 @@ public class DiskUsage extends LoadableActivity {
     this.currentSelectedEntity = position;
     menu.update(position);
     if (position == null) return;
-
-    updateInfoBanner(position);
-
-    android.app.ActionBar ab = getActionBar();
-    if (ab != null) {
-      MountPoint mp = MountPoint.getForKey(this, key);
-      ab.setTitle(mp != null ? mp.getTitle() : position.name);
-      ab.setSubtitle(null);
-    } else {
-      setTitle(getString(R.string.title_for_path, position.toTitleString()));
-    }
+    updateBarInfo(position);
   }
 
   @Override

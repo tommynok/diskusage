@@ -48,6 +48,7 @@ import com.google.android.diskusage.filesystem.Apps2SDLoader;
 import com.google.android.diskusage.filesystem.BackgroundDelete;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.core.NativeScanner;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.google.android.diskusage.databinding.ActivityDiskusageBinding;

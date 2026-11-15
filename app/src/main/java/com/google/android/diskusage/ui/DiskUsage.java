@@ -21,6 +21,10 @@ package com.google.android.diskusage.ui;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -54,6 +58,7 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 import com.google.android.diskusage.databinding.ActivityDiskusageBinding;
 import com.google.android.diskusage.databinding.ActionBarDiskusageBinding;
+import com.google.android.diskusage.databinding.DialogEntryDetailsBinding;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
@@ -412,10 +417,7 @@ public class DiskUsage extends LoadableActivity {
 
     tb.titleContainer.setOnClickListener(v -> {
       if (currentSelectedEntity != null) {
-        String p = currentSelectedEntity.absolutePath();
-        if (p != null && !p.isEmpty()) {
-          Toast.makeText(DiskUsage.this, p, Toast.LENGTH_SHORT).show();
-        }
+        showDetailBottomSheet(currentSelectedEntity);
       }
     });
 
@@ -435,12 +437,6 @@ public class DiskUsage extends LoadableActivity {
     });
 
     tb.btnSearch.setOnClickListener(v -> openSearch());
-
-    tb.btnOpen.setOnClickListener(v -> {
-      if (currentSelectedEntity != null) {
-        view(currentSelectedEntity);
-      }
-    });
 
     tb.btnOverflow.setOnClickListener(v -> showOverflowMenu());
 
@@ -507,7 +503,7 @@ public class DiskUsage extends LoadableActivity {
     MenuItem itemRescan = m.add(0, 1, 0, R.string.button_rescan);
     MenuItem itemDelete = m.add(0, 2, 0, R.string.button_delete);
     boolean isGPU = fileSystemState != null && fileSystemState.isGPU();
-    MenuItem itemRenderer = m.add(0, 3, 0, isGPU ? "Software Renderer" : "Hardware Renderer");
+    MenuItem itemRenderer = m.add(0, 3, 0, isGPU ? R.string.renderer_software : R.string.renderer_hardware);
     MenuItem itemAbout = m.add(0, 4, 0, R.string.action_about);
 
     boolean view = currentSelectedEntity != null && fileSystemState != null && fileSystemState.masterRoot != null
@@ -541,6 +537,78 @@ public class DiskUsage extends LoadableActivity {
       return false;
     });
     popup.show();
+  }
+
+  public void showDetailBottomSheet(FileSystemEntry entry) {
+    if (entry == null) return;
+    Dialog dialog = new Dialog(this);
+    dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+    DialogEntryDetailsBinding binding = DialogEntryDetailsBinding.inflate(getLayoutInflater());
+    dialog.setContentView(binding.getRoot());
+
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+      dialog.getWindow().setGravity(Gravity.BOTTOM);
+    }
+
+    String name = entry.name != null && !entry.name.isEmpty() ? entry.name : entry.title();
+    if (name == null || name.isEmpty()) {
+      MountPoint mp = MountPoint.getForKey(this, key);
+      name = getVolumeLabel(mp, entry.absolutePath());
+    }
+    binding.entryName.setText(name);
+
+    String absPath = entry.absolutePath();
+    binding.entryPath.setText(absPath != null && !absPath.isEmpty() ? absPath : "/");
+
+    binding.btnCopyPath.setOnClickListener(v -> {
+      if (absPath != null && !absPath.isEmpty()) {
+        android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cb != null) {
+          cb.setPrimaryClip(android.content.ClipData.newPlainText("path", absPath));
+          Toast.makeText(DiskUsage.this, getString(R.string.path_copied, absPath), Toast.LENGTH_SHORT).show();
+        }
+      }
+    });
+
+    binding.entryStats.setText(entry.toSubtitleString());
+
+    int numFiles = entry.getNumFiles();
+    if (numFiles > 0) {
+      binding.entryNumFiles.setVisibility(View.VISIBLE);
+      binding.entryNumFiles.setText(getString(R.string.total_files_count, numFiles));
+    } else {
+      binding.entryNumFiles.setVisibility(View.GONE);
+    }
+
+    boolean canOpen = !(fileSystemState == null
+        || fileSystemState.masterRoot == null
+        || entry == fileSystemState.masterRoot.children[0]
+        || entry instanceof FileSystemSpecial);
+    binding.btnSheetOpen.setEnabled(canOpen);
+    binding.btnSheetOpen.setAlpha(canOpen ? 1.0f : 0.4f);
+    binding.btnSheetOpen.setOnClickListener(v -> {
+      dialog.dismiss();
+      view(entry);
+    });
+
+    boolean fileOrNotSearching = diskUsageBinding != null
+        && diskUsageBinding.topToolbar.searchContainer.getVisibility() != View.VISIBLE
+        && (entry.children == null || (menu != null && menu.searchPattern == null));
+    MountPoint mountPoint = MountPoint.getForKey(this, getKey());
+    boolean canDelete = canOpen && entry.isDeletable()
+        && fileOrNotSearching && mountPoint != null && mountPoint.isDeleteSupported();
+    binding.btnSheetDelete.setEnabled(canDelete);
+    binding.btnSheetDelete.setAlpha(canDelete ? 1.0f : 0.4f);
+    binding.btnSheetDelete.setOnClickListener(v -> {
+      dialog.dismiss();
+      askForDeletion(entry);
+    });
+
+    binding.btnSheetClose.setOnClickListener(v -> dialog.dismiss());
+
+    dialog.show();
   }
 
   public void showAboutDialog() {
@@ -594,64 +662,96 @@ public class DiskUsage extends LoadableActivity {
     }
     if (diskUsageBinding != null) {
       MountPoint mp = MountPoint.getForKey(this, key);
-      String breadcrumb = getBreadcrumbPath(position, mp);
-      diskUsageBinding.topToolbar.barPath.setText(breadcrumb);
-      diskUsageBinding.topToolbar.barStats.setText(position.toSubtitleString());
+      String abs = position.absolutePath();
+      String volumeName = getVolumeLabel(mp, abs);
 
-      boolean canOpen = !(fileSystemState == null
-          || fileSystemState.masterRoot == null
-          || position == fileSystemState.masterRoot.children[0]
-          || position instanceof FileSystemSpecial);
-      diskUsageBinding.topToolbar.btnOpen.setEnabled(canOpen);
-      diskUsageBinding.topToolbar.btnOpen.setAlpha(canOpen ? 1.0f : 0.35f);
+      boolean isRoot = isRootEntity(position, mp);
+
+      if (isRoot) {
+        diskUsageBinding.topToolbar.barTitle.setText(volumeName);
+        diskUsageBinding.topToolbar.barPathContext.setText(mp != null ? mp.getTitle() : volumeName);
+        diskUsageBinding.topToolbar.barSizeCap.setText(" · " + position.toSubtitleString());
+      } else {
+        String name = position.name != null && !position.name.isEmpty() ? position.name : position.title();
+        if (name == null || name.isEmpty()) name = volumeName;
+        diskUsageBinding.topToolbar.barTitle.setText(name);
+
+        String ancestors = getAncestorsBreadcrumbs(position, mp, volumeName);
+        diskUsageBinding.topToolbar.barPathContext.setText(ancestors);
+        diskUsageBinding.topToolbar.barSizeCap.setText(" · " + position.sizeString());
+      }
     }
   }
 
-  private String getBreadcrumbPath(FileSystemEntry entry, MountPoint mp) {
-    if (entry == null) return "";
-    String abs = entry.absolutePath();
-    if (abs == null || abs.isEmpty()) {
-      return entry.name != null ? entry.name : "";
+  private boolean isRootEntity(FileSystemEntry position, MountPoint mp) {
+    if (position == null) return true;
+    if (fileSystemState != null && fileSystemState.masterRoot != null
+        && fileSystemState.masterRoot.children != null
+        && fileSystemState.masterRoot.children.length > 0) {
+      if (position == fileSystemState.masterRoot.children[0]) {
+        return true;
+      }
     }
+    String abs = position.absolutePath();
+    if (mp != null && mp.getRoot() != null) {
+      if (abs == null || abs.isEmpty() || abs.equals(mp.getRoot()) || (mp.getRoot() + "/").equals(abs)) {
+        return true;
+      }
+    }
+    return position.parent == null;
+  }
 
-    final String sep = " \u203A ";
-
+  public String getVolumeLabel(MountPoint mp, String abs) {
     if (mp != null) {
       String root = mp.getRoot();
-      if (root != null && abs.startsWith(root)) {
-        String sub = abs.substring(root.length());
-        if (sub.startsWith("/")) sub = sub.substring(1);
-        if (sub.isEmpty()) {
-          return mp.getTitle();
+      if (root != null) {
+        if (root.contains("emulated") || root.equals("/data")) {
+          return getString(R.string.root_prefix_internal);
         }
-        String prefix = (root.contains("emulated") || root.equals("/data"))
-            ? getString(R.string.root_prefix_internal)
-            : (root.startsWith("/storage/") ? getString(R.string.root_prefix_sd) : mp.getTitle());
-        return prefix + sep + sub.replace("/", sep);
+        if (root.startsWith("/storage/")) {
+          return getString(R.string.root_prefix_sd);
+        }
+      }
+      String t = mp.getTitle();
+      if (t != null && !t.isEmpty()) return t;
+    }
+    if (abs != null) {
+      if (abs.startsWith("/storage/emulated") || abs.startsWith("/data")) {
+        return getString(R.string.root_prefix_internal);
+      }
+      if (abs.startsWith("/storage/")) {
+        return getString(R.string.root_prefix_sd);
       }
     }
+    return getString(R.string.root_prefix_internal);
+  }
 
-    if (abs.startsWith("/storage/emulated/0")) {
-      String sub = abs.substring("/storage/emulated/0".length());
-      if (sub.startsWith("/")) sub = sub.substring(1);
-      if (sub.isEmpty()) {
-        return getString(R.string.storage_card);
-      }
-      return getString(R.string.root_prefix_internal) + sep + sub.replace("/", sep);
-    }
+  private String getAncestorsBreadcrumbs(FileSystemEntry entry, MountPoint mp, String volumeName) {
+    if (entry == null) return volumeName;
+    String abs = entry.absolutePath();
+    if (abs == null || abs.isEmpty()) return volumeName;
 
-    if (abs.startsWith("/storage/")) {
+    String root = (mp != null && mp.getRoot() != null) ? mp.getRoot() : "/storage/emulated/0";
+    String sub = "";
+    if (abs.startsWith(root)) {
+      sub = abs.substring(root.length());
+    } else if (abs.startsWith("/storage/emulated/0")) {
+      sub = abs.substring("/storage/emulated/0".length());
+    } else if (abs.startsWith("/storage/")) {
       int secondSlash = abs.indexOf('/', "/storage/".length());
       if (secondSlash != -1) {
-        String dev = abs.substring("/storage/".length(), secondSlash);
-        String sub = abs.substring(secondSlash + 1);
-        return dev + sep + sub.replace("/", sep);
+        sub = abs.substring(secondSlash);
       }
     }
+    if (sub.startsWith("/")) sub = sub.substring(1);
 
-    String clean = abs;
-    if (clean.startsWith("/")) clean = clean.substring(1);
-    return clean.isEmpty() ? "/" : clean.replace("/", sep);
+    int lastSlash = sub.lastIndexOf('/');
+    if (lastSlash != -1) {
+      String ancestors = sub.substring(0, lastSlash).replace("/", " \u203A ");
+      return volumeName + " \u203A " + ancestors;
+    } else {
+      return volumeName;
+    }
   }
 
   public void setSelectedEntity(FileSystemEntry position) {

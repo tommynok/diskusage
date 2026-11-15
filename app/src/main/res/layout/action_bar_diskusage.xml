@@ -5,24 +5,24 @@
     android:layout_height="48dp"
     android:background="?android:attr/colorBackground">
 
-    <!-- Normal Navigation Bar -->
+    <!-- Normal Inspector Bar -->
     <LinearLayout
         android:id="@+id/normal_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="4dp"
-        android:paddingEnd="6dp">
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp">
 
         <ImageButton
             android:id="@+id/btn_back"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="center_vertical"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_action_back"
-            android:padding="7.5dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/action_back" />
 
@@ -31,34 +31,54 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="4dp"
             android:orientation="vertical"
             android:gravity="center_vertical"
             android:clickable="true"
             android:focusable="true"
             android:background="?android:attr/selectableItemBackground"
-            android:paddingStart="2dp"
+            android:paddingStart="4dp"
             android:paddingEnd="4dp">
 
+            <!-- Line 1: Current entity name / Root volume name (15.5sp bold) -->
             <TextView
-                android:id="@+id/bar_path"
+                android:id="@+id/bar_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="13.5sp"
+                android:textSize="15.5sp"
                 android:textStyle="bold"
                 android:textColor="?android:attr/textColorPrimary"
                 android:singleLine="true"
-                android:ellipsize="start" />
+                android:ellipsize="end" />
 
-            <TextView
-                android:id="@+id/bar_stats"
+            <!-- Line 2: Volume + Ancestors (middle ellipsis) + fixed Size end-cap -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:textSize="10.5sp"
-                android:textColor="?android:attr/textColorSecondary"
-                android:singleLine="true"
-                android:ellipsize="end" />
+                android:layout_marginTop="0.5dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/bar_path_context"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="11sp"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:singleLine="true"
+                    android:ellipsize="middle" />
+
+                <TextView
+                    android:id="@+id/bar_size_cap"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:singleLine="true" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -71,33 +91,21 @@
 
             <ImageButton
                 android:id="@+id/btn_search"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_action_search"
-                android:padding="7.5dp"
+                android:padding="13dp"
                 android:scaleType="fitCenter"
                 android:contentDescription="@string/button_search" />
 
             <ImageButton
-                android:id="@+id/btn_open"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:layout_marginStart="4dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_action_open"
-                android:padding="7.5dp"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/button_show" />
-
-            <ImageButton
                 android:id="@+id/btn_overflow"
-                android:layout_width="30dp"
-                android:layout_height="34dp"
-                android:layout_marginStart="4dp"
+                android:layout_width="44dp"
+                android:layout_height="48dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_action_overflow"
-                android:padding="5dp"
+                android:padding="11dp"
                 android:scaleType="fitCenter"
                 android:contentDescription="@string/action_menu" />
 
@@ -112,17 +120,17 @@
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="4dp"
-        android:paddingEnd="6dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="2dp"
         android:visibility="gone">
 
         <ImageButton
             android:id="@+id/btn_search_back"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_action_back"
-            android:padding="7.5dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/action_back" />
 
@@ -131,9 +139,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="4dp"
             android:hint="@string/button_search"
-            android:textSize="13.5sp"
+            android:textSize="14sp"
             android:textColor="?android:attr/textColorPrimary"
             android:textColorHint="?android:attr/textColorSecondary"
             android:singleLine="true"
@@ -142,11 +150,11 @@
 
         <ImageButton
             android:id="@+id/btn_search_clear"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_action_close"
-            android:padding="7.5dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
             android:visibility="gone"
             android:contentDescription="@android:string/cancel" />

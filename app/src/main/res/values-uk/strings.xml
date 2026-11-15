@@ -110,7 +110,13 @@
     <string name="dir_empty_subtitle">0 Б (порожньо)</string>
     <string name="path_copied">Шлях скопійовано: %s</string>
     <string name="root_prefix_internal">Пам\'ять</string>
-    <string name="root_prefix_sd">SD</string>
+    <string name="root_prefix_sd">SD-карта</string>
     <string name="action_back">Назад</string>
     <string name="action_menu">Меню</string>
+    <string name="button_copy">Скопіювати</string>
+    <string name="label_path">Повний шлях:</string>
+    <string name="dialog_close">Закрити</string>
+    <string name="total_files_count">Всього файлів: %d</string>
+    <string name="renderer_software">Програмний рендерер</string>
+    <string name="renderer_hardware">Апаратний рендерер</string>
 </resources>

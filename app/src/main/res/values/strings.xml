@@ -109,8 +109,14 @@
     <string name="subtitle_size_num_dirs">%1$s • %2$d dirs</string>
     <string name="dir_empty_subtitle">0 B (empty)</string>
     <string name="path_copied">Path copied: %s</string>
-    <string name="root_prefix_internal">Storage</string>
-    <string name="root_prefix_sd">SD</string>
+    <string name="root_prefix_internal">Internal</string>
+    <string name="root_prefix_sd">SD card</string>
     <string name="action_back">Back</string>
     <string name="action_menu">Menu</string>
+    <string name="button_copy">Copy</string>
+    <string name="label_path">Full path:</string>
+    <string name="dialog_close">Close</string>
+    <string name="total_files_count">Total files: %d</string>
+    <string name="renderer_software">Software Renderer</string>
+    <string name="renderer_hardware">Hardware Renderer</string>
 </resources>

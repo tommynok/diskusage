@@ -110,7 +110,13 @@
     <string name="dir_empty_subtitle">0 Б (пусто)</string>
     <string name="path_copied">Путь скопирован: %s</string>
     <string name="root_prefix_internal">Память</string>
-    <string name="root_prefix_sd">SD</string>
+    <string name="root_prefix_sd">SD-карта</string>
     <string name="action_back">Назад</string>
     <string name="action_menu">Меню</string>
+    <string name="button_copy">Копировать</string>
+    <string name="label_path">Полный путь:</string>
+    <string name="dialog_close">Закрыть</string>
+    <string name="total_files_count">Всего файлов: %d</string>
+    <string name="renderer_software">Программный рендерер</string>
+    <string name="renderer_hardware">Аппаратный рендерер</string>
 </resources>

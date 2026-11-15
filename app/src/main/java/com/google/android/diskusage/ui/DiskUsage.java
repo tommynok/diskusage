@@ -65,6 +65,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
 

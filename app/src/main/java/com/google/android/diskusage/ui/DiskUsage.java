@@ -549,13 +549,6 @@ public class DiskUsage extends LoadableActivity {
   }
 
   @Override
-  public boolean onPrepareOptionsMenu(Menu menu) {
-    boolean res = super.onPrepareOptionsMenu(menu);
-    getWindow().getDecorView().post(this::compactActionBar);
-    return res;
-  }
-
-  @Override
   public boolean onOptionsItemSelected(@NonNull MenuItem item) {
     if (item.getItemId() == android.R.id.home) {
       finishOnBack();
@@ -848,6 +841,7 @@ public class DiskUsage extends LoadableActivity {
   public boolean onPrepareOptionsMenu(Menu menu) {
     super.onPrepareOptionsMenu(menu);
     this.menu.onPrepareOptionsMenu(menu);
+    getWindow().getDecorView().post(this::compactActionBar);
     return true;
   }
 

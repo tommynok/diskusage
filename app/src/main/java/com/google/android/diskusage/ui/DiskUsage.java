@@ -552,7 +552,7 @@ public class DiskUsage extends LoadableActivity {
       dialog.getWindow().setGravity(Gravity.BOTTOM);
     }
 
-    String name = entry.name != null && !entry.name.isEmpty() ? entry.name : entry.title();
+    String name = (entry.name != null && !entry.name.isEmpty()) ? entry.name : entry.absolutePath();
     if (name == null || name.isEmpty()) {
       MountPoint mp = MountPoint.getForKey(this, key);
       name = getVolumeLabel(mp, entry.absolutePath());
@@ -672,7 +672,7 @@ public class DiskUsage extends LoadableActivity {
         diskUsageBinding.topToolbar.barPathContext.setText(mp != null ? mp.getTitle() : volumeName);
         diskUsageBinding.topToolbar.barSizeCap.setText(" · " + position.toSubtitleString());
       } else {
-        String name = position.name != null && !position.name.isEmpty() ? position.name : position.title();
+        String name = (position.name != null && !position.name.isEmpty()) ? position.name : position.absolutePath();
         if (name == null || name.isEmpty()) name = volumeName;
         diskUsageBinding.topToolbar.barTitle.setText(name);
 

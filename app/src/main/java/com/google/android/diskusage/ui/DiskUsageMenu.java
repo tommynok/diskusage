@@ -17,6 +17,7 @@ import com.google.android.diskusage.databinding.AboutDialogBinding;
 import com.google.android.diskusage.datasource.SearchManager;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
+import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.utils.AppIconCache;

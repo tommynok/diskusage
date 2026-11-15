@@ -37,7 +37,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
   @Override
   public void wrapAndSetContentView(View view, FileSystemSuperRoot newRoot) {
     super.wrapAndSetContentView(view, newRoot);
-    diskusage.setContentView(view);
+    diskusage.attachGraphView(view);
     diskusage.invalidateOptionsMenu();
   }
 

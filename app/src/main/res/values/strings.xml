@@ -108,4 +108,5 @@
     <string name="action_hide_unfiltered">Default mode</string>
     <string name="subtitle_size_num_dirs">%1$s • %2$d dirs</string>
     <string name="dir_empty_subtitle">0 B (empty)</string>
+    <string name="path_copied">Path copied: %s</string>
 </resources>

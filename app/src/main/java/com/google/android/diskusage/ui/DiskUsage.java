@@ -48,6 +48,9 @@ import com.google.android.diskusage.filesystem.Apps2SDLoader;
 import com.google.android.diskusage.filesystem.BackgroundDelete;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.core.NativeScanner;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import com.google.android.diskusage.databinding.ActivityDiskusageBinding;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
@@ -404,15 +407,108 @@ public class DiskUsage extends LoadableActivity {
   }
 
   private FileSystemEntry currentSelectedEntity;
+  private ActivityDiskusageBinding diskUsageBinding;
+
+  public void attachGraphView(View view) {
+    if (diskUsageBinding == null) {
+      diskUsageBinding = ActivityDiskusageBinding.inflate(getLayoutInflater());
+      setContentView(diskUsageBinding.getRoot());
+    }
+    diskUsageBinding.graphContainer.removeAllViews();
+    diskUsageBinding.graphContainer.addView(view, new FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    view.requestFocus();
+
+    diskUsageBinding.infoBanner.setOnClickListener(v -> {
+      if (currentSelectedEntity != null) {
+        String p = currentSelectedEntity.absolutePath();
+        if (p != null && !p.isEmpty()) {
+          android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
+        }
+      }
+    });
+
+    diskUsageBinding.infoBanner.setOnLongClickListener(v -> {
+      if (currentSelectedEntity != null) {
+        String p = currentSelectedEntity.absolutePath();
+        if (p != null && !p.isEmpty()) {
+          android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+          if (cb != null) {
+            cb.setPrimaryClip(android.content.ClipData.newPlainText("path", p));
+            android.widget.Toast.makeText(DiskUsage.this, getString(R.string.path_copied, p), android.widget.Toast.LENGTH_SHORT).show();
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+
+    if (currentSelectedEntity != null) {
+      updateInfoBanner(currentSelectedEntity);
+    }
+  }
+
+  public void updateInfoBanner(FileSystemEntry position) {
+    if (diskUsageBinding == null || position == null) return;
+    MountPoint mp = MountPoint.getForKey(this, key);
+    String breadcrumb = getBreadcrumbPath(position, mp);
+    diskUsageBinding.infoPath.setText(breadcrumb);
+    diskUsageBinding.infoStats.setText(position.toSubtitleString());
+  }
+
+  private String getBreadcrumbPath(FileSystemEntry entry, MountPoint mp) {
+    if (entry == null) return "";
+    String abs = entry.absolutePath();
+    if (abs == null || abs.isEmpty()) {
+      return entry.name != null ? entry.name : "";
+    }
+
+    if (mp != null) {
+      String root = mp.getRoot();
+      if (root != null && abs.startsWith(root)) {
+        String sub = abs.substring(root.length());
+        if (sub.startsWith("/")) sub = sub.substring(1);
+        String title = mp.getTitle();
+        if (sub.isEmpty()) {
+          return title;
+        }
+        return title + " > " + sub.replace("/", " > ");
+      }
+    }
+
+    if (abs.startsWith("/storage/emulated/0")) {
+      String sub = abs.substring("/storage/emulated/0".length());
+      if (sub.startsWith("/")) sub = sub.substring(1);
+      String title = getString(R.string.storage_card);
+      return sub.isEmpty() ? title : title + " > " + sub.replace("/", " > ");
+    }
+
+    if (abs.startsWith("/storage/")) {
+      int secondSlash = abs.indexOf('/', "/storage/".length());
+      if (secondSlash != -1) {
+        String dev = abs.substring("/storage/".length(), secondSlash);
+        String sub = abs.substring(secondSlash + 1);
+        return dev + " > " + sub.replace("/", " > ");
+      }
+    }
+
+    String clean = abs;
+    if (clean.startsWith("/")) clean = clean.substring(1);
+    return clean.isEmpty() ? "/" : clean.replace("/", " > ");
+  }
 
   public void setSelectedEntity(FileSystemEntry position) {
     this.currentSelectedEntity = position;
     menu.update(position);
     if (position == null) return;
+
+    updateInfoBanner(position);
+
     android.app.ActionBar ab = getActionBar();
     if (ab != null) {
-      ab.setTitle(position.name);
-      ab.setSubtitle(position.toSubtitleString());
+      MountPoint mp = MountPoint.getForKey(this, key);
+      ab.setTitle(mp != null ? mp.getTitle() : position.name);
+      ab.setSubtitle(null);
     } else {
       setTitle(getString(R.string.title_for_path, position.toTitleString()));
     }

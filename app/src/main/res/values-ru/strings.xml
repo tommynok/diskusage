@@ -108,4 +108,5 @@
     <string name="action_hide_unfiltered">Режим по умолчанию</string>
     <string name="subtitle_size_num_dirs">%1$s • папок: %2$d</string>
     <string name="dir_empty_subtitle">0 Б (пусто)</string>
+    <string name="path_copied">Путь скопирован: %s</string>
 </resources>

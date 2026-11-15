@@ -7,7 +7,7 @@ android {
     ndkVersion "25.2.9519653"
 
     defaultConfig {
-        applicationId "com.google.android.diskusage"
+        applicationId "com.diskusage.ng"
         targetSdk 33
         minSdk 21
     }

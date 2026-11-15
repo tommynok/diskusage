@@ -51,12 +51,12 @@ import com.google.android.diskusage.core.NativeScanner;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 import com.google.android.diskusage.databinding.ActivityDiskusageBinding;
 import com.google.android.diskusage.databinding.ActionBarDiskusageBinding;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
-import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
@@ -100,8 +100,9 @@ public class DiskUsage extends LoadableActivity {
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     Logger.getLOGGER().d("DiskUsage.onCreate()");
-    ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
-    setContentView(binding.getRoot());
+    diskUsageBinding = ActivityDiskusageBinding.inflate(getLayoutInflater());
+    setContentView(diskUsageBinding.getRoot());
+    initCustomToolbar();
     menu.onCreate();
     Intent i = getIntent();
 
@@ -122,7 +123,6 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
             mountPoint.getRoot(), receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
-    initActionBar();
   }
 
   ArrayList<Runnable> afterLoadAction = new ArrayList<>();
@@ -378,7 +378,16 @@ public class DiskUsage extends LoadableActivity {
     LoadFiles(DiskUsage.this, (newRoot, isCached) -> fileSystemState.startZoomAnimationInRenderThread(newRoot, !isCached, false), true);
   }
 
+  @Override
+  public void onBackPressed() {
+    finishOnBack();
+  }
+
   public void finishOnBack() {
+    if (diskUsageBinding != null && diskUsageBinding.topToolbar.searchContainer.getVisibility() == View.VISIBLE) {
+      closeSearch();
+      return;
+    }
     if (!menu.readyToFinish()) {
       return;
     }
@@ -393,82 +402,177 @@ public class DiskUsage extends LoadableActivity {
 
   private FileSystemEntry currentSelectedEntity;
   private ActivityDiskusageBinding diskUsageBinding;
-  private ActionBarDiskusageBinding abBinding;
 
-  private void initActionBar() {
-    android.app.ActionBar ab = getActionBar();
-    if (ab != null) {
-      ab.setDisplayHomeAsUpEnabled(true);
-      ab.setDisplayShowTitleEnabled(false);
-      ab.setDisplayShowCustomEnabled(true);
-      abBinding = ActionBarDiskusageBinding.inflate(getLayoutInflater());
-      android.app.ActionBar.LayoutParams lp = new android.app.ActionBar.LayoutParams(
-          android.app.ActionBar.LayoutParams.MATCH_PARENT,
-          android.app.ActionBar.LayoutParams.MATCH_PARENT
-      );
-      ab.setCustomView(abBinding.getRoot(), lp);
+  private void initCustomToolbar() {
+    if (diskUsageBinding == null) return;
+    ActionBarDiskusageBinding tb = diskUsageBinding.topToolbar;
 
-      abBinding.customBarLayout.setOnClickListener(v -> {
-        if (currentSelectedEntity != null) {
-          String p = currentSelectedEntity.absolutePath();
-          if (p != null && !p.isEmpty()) {
-            android.widget.Toast.makeText(DiskUsage.this, p, android.widget.Toast.LENGTH_SHORT).show();
-          }
+    tb.btnBack.setOnClickListener(v -> finishOnBack());
+
+    tb.titleContainer.setOnClickListener(v -> {
+      if (currentSelectedEntity != null) {
+        String p = currentSelectedEntity.absolutePath();
+        if (p != null && !p.isEmpty()) {
+          Toast.makeText(DiskUsage.this, p, Toast.LENGTH_SHORT).show();
         }
-      });
+      }
+    });
 
-      abBinding.customBarLayout.setOnLongClickListener(v -> {
-        if (currentSelectedEntity != null) {
-          String p = currentSelectedEntity.absolutePath();
-          if (p != null && !p.isEmpty()) {
-            android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cb != null) {
-              cb.setPrimaryClip(android.content.ClipData.newPlainText("path", p));
-              android.widget.Toast.makeText(DiskUsage.this, getString(R.string.path_copied, p), android.widget.Toast.LENGTH_SHORT).show();
-              return true;
-            }
-          }
-        }
-        return false;
-      });
-
-      getWindow().getDecorView().post(this::compactActionBar);
-    }
-  }
-
-  private void compactActionBar() {
-    int resId = getResources().getIdentifier("action_bar", "id", "android");
-    if (resId != 0) {
-      View abView = findViewById(resId);
-      if (abView instanceof android.widget.Toolbar) {
-        android.widget.Toolbar tb = (android.widget.Toolbar) abView;
-        tb.setContentInsetsRelative(0, 0);
-        tb.setContentInsetStartWithNavigation(0);
-        tb.setContentInsetsAbsolute(0, 0);
-
-        for (int i = 0; i < tb.getChildCount(); i++) {
-          View child = tb.getChildAt(i);
-          if (child instanceof android.widget.ImageButton) {
-            child.setPadding(2, 0, 2, 0);
-            child.setMinimumWidth(0);
-          } else if (child instanceof android.widget.ActionMenuView) {
-            android.widget.ActionMenuView amv = (android.widget.ActionMenuView) child;
-            amv.setPadding(0, 0, 0, 0);
-            for (int j = 0; j < amv.getChildCount(); j++) {
-              View item = amv.getChildAt(j);
-              item.setPadding(4, 0, 4, 0);
-              item.setMinimumWidth(0);
-            }
+    tb.titleContainer.setOnLongClickListener(v -> {
+      if (currentSelectedEntity != null) {
+        String p = currentSelectedEntity.absolutePath();
+        if (p != null && !p.isEmpty()) {
+          android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+          if (cb != null) {
+            cb.setPrimaryClip(android.content.ClipData.newPlainText("path", p));
+            Toast.makeText(DiskUsage.this, getString(R.string.path_copied, p), Toast.LENGTH_SHORT).show();
+            return true;
           }
         }
       }
+      return false;
+    });
+
+    tb.btnSearch.setOnClickListener(v -> openSearch());
+
+    tb.btnOpen.setOnClickListener(v -> {
+      if (currentSelectedEntity != null) {
+        view(currentSelectedEntity);
+      }
+    });
+
+    tb.btnOverflow.setOnClickListener(v -> showOverflowMenu());
+
+    // Search controls
+    tb.btnSearchBack.setOnClickListener(v -> closeSearch());
+
+    tb.btnSearchClear.setOnClickListener(v -> tb.searchInput.setText(""));
+
+    tb.searchInput.addTextChangedListener(new android.text.TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {
+        String query = s.toString();
+        tb.btnSearchClear.setVisibility(query.length() > 0 ? View.VISIBLE : View.GONE);
+        menu.applyPattern(query);
+      }
+
+      @Override
+      public void afterTextChanged(android.text.Editable s) {}
+    });
+  }
+
+  public void openSearch() {
+    if (diskUsageBinding == null) return;
+    ActionBarDiskusageBinding tb = diskUsageBinding.topToolbar;
+    tb.normalBarLayout.setVisibility(View.GONE);
+    tb.searchContainer.setVisibility(View.VISIBLE);
+    tb.searchInput.requestFocus();
+    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    if (imm != null) {
+      imm.showSoftInput(tb.searchInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
     }
+  }
+
+  public void closeSearch() {
+    if (diskUsageBinding == null) return;
+    ActionBarDiskusageBinding tb = diskUsageBinding.topToolbar;
+    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    if (imm != null) {
+      imm.hideSoftInputFromWindow(tb.searchInput.getWindowToken(), 0);
+    }
+    tb.searchInput.setText("");
+    menu.applyPattern("");
+    tb.searchContainer.setVisibility(View.GONE);
+    tb.normalBarLayout.setVisibility(View.VISIBLE);
+  }
+
+  public void onSearchMatchResult(boolean matched) {
+    if (diskUsageBinding != null) {
+      if (matched) {
+        diskUsageBinding.topToolbar.searchInput.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+      } else {
+        diskUsageBinding.topToolbar.searchInput.setBackgroundColor(android.graphics.Color.parseColor("#33FF0000"));
+      }
+    }
+  }
+
+  private void showOverflowMenu() {
+    if (diskUsageBinding == null) return;
+    android.widget.PopupMenu popup = new android.widget.PopupMenu(this, diskUsageBinding.topToolbar.btnOverflow);
+    Menu m = popup.getMenu();
+    MenuItem itemRescan = m.add(0, 1, 0, R.string.button_rescan);
+    MenuItem itemDelete = m.add(0, 2, 0, R.string.button_delete);
+    boolean isGPU = fileSystemState != null && fileSystemState.isGPU();
+    MenuItem itemRenderer = m.add(0, 3, 0, isGPU ? "Software Renderer" : "Hardware Renderer");
+    MenuItem itemAbout = m.add(0, 4, 0, R.string.action_about);
+
+    boolean view = currentSelectedEntity != null && fileSystemState != null && fileSystemState.masterRoot != null
+        && !(currentSelectedEntity == fileSystemState.masterRoot.children[0]
+             || currentSelectedEntity instanceof FileSystemSpecial);
+    boolean fileOrNotSearching = diskUsageBinding.topToolbar.searchContainer.getVisibility() != View.VISIBLE
+        || currentSelectedEntity == null || currentSelectedEntity.children == null;
+    MountPoint mountPoint = MountPoint.getForKey(this, getKey());
+    itemDelete.setEnabled(view && currentSelectedEntity.isDeletable()
+        && fileOrNotSearching && mountPoint != null && mountPoint.isDeleteSupported());
+
+    popup.setOnMenuItemClickListener(item -> {
+      switch (item.getItemId()) {
+        case 1:
+          rescan();
+          return true;
+        case 2:
+          if (currentSelectedEntity != null) {
+            askForDeletion(currentSelectedEntity);
+          }
+          return true;
+        case 3:
+          if (menu != null && menu.masterRoot != null) {
+            rendererManager.switchRenderer(menu.masterRoot);
+          }
+          return true;
+        case 4:
+          showAboutDialog();
+          return true;
+      }
+      return false;
+    });
+    popup.show();
+  }
+
+  public void showAboutDialog() {
+    final com.google.android.diskusage.databinding.AboutDialogBinding binding =
+        com.google.android.diskusage.databinding.AboutDialogBinding.inflate(getLayoutInflater(), null, false);
+    binding.sourceCode.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+    binding.sourceCode.setText(android.text.Html.fromHtml(getString(
+        R.string.about_view_source_code,
+        "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
+    )));
+    binding.icon.setImageBitmap(
+        com.google.android.diskusage.utils.AppIconCache.getOrLoadBitmap(
+            this,
+            getApplicationInfo(),
+            android.os.Process.myUid() / 100000,
+            getResources().getDimensionPixelSize(R.dimen.default_app_icon_size)
+        )
+    );
+    try {
+      binding.versionName.setText(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
+    } catch (PackageManager.NameNotFoundException e) {
+      e.printStackTrace();
+    }
+    new AlertDialog.Builder(this)
+        .setView(binding.getRoot())
+        .show();
   }
 
   public void attachGraphView(View view) {
     if (diskUsageBinding == null) {
       diskUsageBinding = ActivityDiskusageBinding.inflate(getLayoutInflater());
       setContentView(diskUsageBinding.getRoot());
+      initCustomToolbar();
     }
     diskUsageBinding.graphContainer.removeAllViews();
     diskUsageBinding.graphContainer.addView(view, new FrameLayout.LayoutParams(
@@ -478,19 +582,27 @@ public class DiskUsage extends LoadableActivity {
     if (currentSelectedEntity != null) {
       updateBarInfo(currentSelectedEntity);
     }
-    getWindow().getDecorView().post(this::compactActionBar);
   }
 
   public void updateBarInfo(FileSystemEntry position) {
     if (position == null) return;
-    if (abBinding == null) {
-      initActionBar();
+    if (diskUsageBinding == null) {
+      diskUsageBinding = ActivityDiskusageBinding.inflate(getLayoutInflater());
+      setContentView(diskUsageBinding.getRoot());
+      initCustomToolbar();
     }
-    if (abBinding != null) {
+    if (diskUsageBinding != null) {
       MountPoint mp = MountPoint.getForKey(this, key);
       String breadcrumb = getBreadcrumbPath(position, mp);
-      abBinding.barPath.setText(breadcrumb);
-      abBinding.barStats.setText(position.toSubtitleString());
+      diskUsageBinding.topToolbar.barPath.setText(breadcrumb);
+      diskUsageBinding.topToolbar.barStats.setText(position.toSubtitleString());
+
+      boolean canOpen = !(fileSystemState == null
+          || fileSystemState.masterRoot == null
+          || position == fileSystemState.masterRoot.children[0]
+          || position instanceof FileSystemSpecial);
+      diskUsageBinding.topToolbar.btnOpen.setEnabled(canOpen);
+      diskUsageBinding.topToolbar.btnOpen.setAlpha(canOpen ? 1.0f : 0.35f);
     }
   }
 
@@ -839,9 +951,6 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   public boolean onPrepareOptionsMenu(Menu menu) {
-    super.onPrepareOptionsMenu(menu);
-    this.menu.onPrepareOptionsMenu(menu);
-    getWindow().getDecorView().post(this::compactActionBar);
     return true;
   }
 
@@ -851,6 +960,6 @@ public class DiskUsage extends LoadableActivity {
   }
 
   public void searchRequest() {
-    menu.searchRequest();
+    openSearch();
   }
 }

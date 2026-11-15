@@ -111,4 +111,6 @@
     <string name="path_copied">Путь скопирован: %s</string>
     <string name="root_prefix_internal">Память</string>
     <string name="root_prefix_sd">SD</string>
+    <string name="action_back">Назад</string>
+    <string name="action_menu">Меню</string>
 </resources>

@@ -111,4 +111,6 @@
     <string name="path_copied">Path copied: %s</string>
     <string name="root_prefix_internal">Storage</string>
     <string name="root_prefix_sd">SD</string>
+    <string name="action_back">Back</string>
+    <string name="action_menu">Menu</string>
 </resources>

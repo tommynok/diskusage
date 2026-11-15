@@ -34,6 +34,7 @@
     <string name="no_viewer_found">Не знайдено застосунок для відкриття</string>
     <string name="ask_to_delete_directory">Видалити папку %s?</string>
     <string name="ask_to_delete_file">Видалити файл %s?</string>
+    <string name="delete_folder_during_search_disabled">Видалення папок під час пошуку вимкнено для безпеки</string>
     <string name="out_of_memory">Недостатньо пам\'яті!</string>
     <string name="empty_or_missing_sdcard">Сховище порожнє або недоступне</string>
     <string name="path_doesnt_exist">%s\nне існує</string>

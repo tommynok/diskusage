@@ -56,7 +56,7 @@ public class MountPoint {
   }
 
   public boolean isDeleteSupported() {
-    return forceHasApps;
+    return true;
   }
 
   public String getKey() {

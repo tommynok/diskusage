@@ -31,8 +31,9 @@
 <string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">Return to DiskUsage</string>
 <string name="no_viewer_found">No viewer found</string>
-<string name="ask_to_delete_directory">Delete %s directory?</string>
-<string name="ask_to_delete_file">Delete %s file?</string>
+    <string name="ask_to_delete_directory">Delete %s directory?</string>
+    <string name="ask_to_delete_file">Delete %s file?</string>
+    <string name="delete_folder_during_search_disabled">Deleting folders during search is disabled for safety</string>
 <string name="out_of_memory">Not enough memory!</string>
 <string name="empty_or_missing_sdcard">Empty or missing SD card</string>
 <string name="path_doesnt_exist">%s\ndoesn\'t exist</string>

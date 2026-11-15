@@ -241,12 +241,10 @@ public class DiskUsage extends LoadableActivity {
       ToastKt.toast("Delete directory instead");
       return;
     }
+    if (entry instanceof FileSystemPackage) {
+      return;
+    }
     if (entry.children == null || entry.children.length == 0) {
-      if (entry instanceof FileSystemPackage) {
-        this.pkg_removed = (FileSystemPackage) entry;
-        BackgroundDelete.startDelete(this, entry);
-        return;
-      }
 
       // Delete single file or directory
       new AlertDialog.Builder(this)
@@ -508,12 +506,15 @@ public class DiskUsage extends LoadableActivity {
 
     boolean view = currentSelectedEntity != null && fileSystemState != null && fileSystemState.masterRoot != null
         && !(currentSelectedEntity == fileSystemState.masterRoot.children[0]
-             || currentSelectedEntity instanceof FileSystemSpecial);
+             || currentSelectedEntity instanceof FileSystemSpecial
+             || currentSelectedEntity instanceof FileSystemPackage);
     boolean fileOrNotSearching = diskUsageBinding.topToolbar.searchContainer.getVisibility() != View.VISIBLE
         || currentSelectedEntity == null || currentSelectedEntity.children == null;
     MountPoint mountPoint = MountPoint.getForKey(this, getKey());
-    itemDelete.setEnabled(view && currentSelectedEntity.isDeletable()
-        && fileOrNotSearching && mountPoint != null && mountPoint.isDeleteSupported());
+    boolean isDeletableTarget = view && currentSelectedEntity.isDeletable()
+        && mountPoint != null && mountPoint.isDeleteSupported();
+    itemDelete.setVisible(isDeletableTarget);
+    itemDelete.setEnabled(isDeletableTarget);
 
     popup.setOnMenuItemClickListener(item -> {
       switch (item.getItemId()) {
@@ -522,7 +523,11 @@ public class DiskUsage extends LoadableActivity {
           return true;
         case 2:
           if (currentSelectedEntity != null) {
-            askForDeletion(currentSelectedEntity);
+            if (!fileOrNotSearching) {
+              Toast.makeText(DiskUsage.this, R.string.delete_folder_during_search_disabled, Toast.LENGTH_SHORT).show();
+            } else {
+              askForDeletion(currentSelectedEntity);
+            }
           }
           return true;
         case 3:
@@ -585,9 +590,10 @@ public class DiskUsage extends LoadableActivity {
     boolean canOpen = !(fileSystemState == null
         || fileSystemState.masterRoot == null
         || entry == fileSystemState.masterRoot.children[0]
-        || entry instanceof FileSystemSpecial);
+        || entry instanceof FileSystemSpecial
+        || entry instanceof FileSystemPackage);
+    binding.btnSheetOpen.setVisibility(canOpen ? View.VISIBLE : View.GONE);
     binding.btnSheetOpen.setEnabled(canOpen);
-    binding.btnSheetOpen.setAlpha(canOpen ? 1.0f : 0.4f);
     binding.btnSheetOpen.setOnClickListener(v -> {
       dialog.dismiss();
       view(entry);
@@ -597,14 +603,23 @@ public class DiskUsage extends LoadableActivity {
         && diskUsageBinding.topToolbar.searchContainer.getVisibility() != View.VISIBLE
         && (entry.children == null || (menu != null && menu.searchPattern == null));
     MountPoint mountPoint = MountPoint.getForKey(this, getKey());
-    boolean canDelete = canOpen && entry.isDeletable()
-        && fileOrNotSearching && mountPoint != null && mountPoint.isDeleteSupported();
-    binding.btnSheetDelete.setEnabled(canDelete);
-    binding.btnSheetDelete.setAlpha(canDelete ? 1.0f : 0.4f);
-    binding.btnSheetDelete.setOnClickListener(v -> {
-      dialog.dismiss();
-      askForDeletion(entry);
-    });
+    boolean isDeletableTarget = canOpen && entry.isDeletable()
+        && mountPoint != null && mountPoint.isDeleteSupported();
+
+    if (!isDeletableTarget) {
+      binding.btnSheetDelete.setVisibility(View.GONE);
+    } else {
+      binding.btnSheetDelete.setVisibility(View.VISIBLE);
+      binding.btnSheetDelete.setAlpha(fileOrNotSearching ? 1.0f : 0.5f);
+      binding.btnSheetDelete.setOnClickListener(v -> {
+        dialog.dismiss();
+        if (!fileOrNotSearching) {
+          Toast.makeText(DiskUsage.this, R.string.delete_folder_during_search_disabled, Toast.LENGTH_SHORT).show();
+        } else {
+          askForDeletion(entry);
+        }
+      });
+    }
 
     binding.btnSheetClose.setOnClickListener(v -> dialog.dismiss());
 

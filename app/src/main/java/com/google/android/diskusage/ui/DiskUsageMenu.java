@@ -195,12 +195,15 @@ public abstract class DiskUsageMenu {
 
 
     boolean view = !(selectedEntity == diskusage.fileSystemState.masterRoot.children[0]
-                || selectedEntity instanceof FileSystemSpecial);
+                || selectedEntity instanceof FileSystemSpecial
+                || selectedEntity instanceof FileSystemPackage);
     showMenuItem.setEnabled(view);
 
     boolean fileOrNotSearching = searchPattern == null || selectedEntity.children == null;
     MountPoint mountPoint = MountPoint.getForKey(diskusage, diskusage.getKey());
-    deleteMenuItem.setEnabled(view && selectedEntity.isDeletable()
-        && fileOrNotSearching && mountPoint.isDeleteSupported());
+    boolean isDeletableTarget = view && selectedEntity.isDeletable()
+        && mountPoint != null && mountPoint.isDeleteSupported();
+    deleteMenuItem.setVisible(isDeletableTarget);
+    deleteMenuItem.setEnabled(isDeletableTarget && fileOrNotSearching);
   }
 }

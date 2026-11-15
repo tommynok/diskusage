@@ -431,6 +431,37 @@ public class DiskUsage extends LoadableActivity {
         }
         return false;
       });
+
+      getWindow().getDecorView().post(this::compactActionBar);
+    }
+  }
+
+  private void compactActionBar() {
+    int resId = getResources().getIdentifier("action_bar", "id", "android");
+    if (resId != 0) {
+      View abView = findViewById(resId);
+      if (abView instanceof android.widget.Toolbar) {
+        android.widget.Toolbar tb = (android.widget.Toolbar) abView;
+        tb.setContentInsetsRelative(0, 0);
+        tb.setContentInsetStartWithNavigation(0);
+        tb.setContentInsetsAbsolute(0, 0);
+
+        for (int i = 0; i < tb.getChildCount(); i++) {
+          View child = tb.getChildAt(i);
+          if (child instanceof android.widget.ImageButton) {
+            child.setPadding(2, 0, 2, 0);
+            child.setMinimumWidth(0);
+          } else if (child instanceof android.widget.ActionMenuView) {
+            android.widget.ActionMenuView amv = (android.widget.ActionMenuView) child;
+            amv.setPadding(0, 0, 0, 0);
+            for (int j = 0; j < amv.getChildCount(); j++) {
+              View item = amv.getChildAt(j);
+              item.setPadding(4, 0, 4, 0);
+              item.setMinimumWidth(0);
+            }
+          }
+        }
+      }
     }
   }
 
@@ -447,6 +478,7 @@ public class DiskUsage extends LoadableActivity {
     if (currentSelectedEntity != null) {
       updateBarInfo(currentSelectedEntity);
     }
+    getWindow().getDecorView().post(this::compactActionBar);
   }
 
   public void updateBarInfo(FileSystemEntry position) {
@@ -469,24 +501,30 @@ public class DiskUsage extends LoadableActivity {
       return entry.name != null ? entry.name : "";
     }
 
+    final String sep = " \u203A ";
+
     if (mp != null) {
       String root = mp.getRoot();
       if (root != null && abs.startsWith(root)) {
         String sub = abs.substring(root.length());
         if (sub.startsWith("/")) sub = sub.substring(1);
-        String title = mp.getTitle();
         if (sub.isEmpty()) {
-          return title;
+          return mp.getTitle();
         }
-        return title + " > " + sub.replace("/", " > ");
+        String prefix = (root.contains("emulated") || root.equals("/data"))
+            ? getString(R.string.root_prefix_internal)
+            : (root.startsWith("/storage/") ? getString(R.string.root_prefix_sd) : mp.getTitle());
+        return prefix + sep + sub.replace("/", sep);
       }
     }
 
     if (abs.startsWith("/storage/emulated/0")) {
       String sub = abs.substring("/storage/emulated/0".length());
       if (sub.startsWith("/")) sub = sub.substring(1);
-      String title = getString(R.string.storage_card);
-      return sub.isEmpty() ? title : title + " > " + sub.replace("/", " > ");
+      if (sub.isEmpty()) {
+        return getString(R.string.storage_card);
+      }
+      return getString(R.string.root_prefix_internal) + sep + sub.replace("/", sep);
     }
 
     if (abs.startsWith("/storage/")) {
@@ -494,13 +532,13 @@ public class DiskUsage extends LoadableActivity {
       if (secondSlash != -1) {
         String dev = abs.substring("/storage/".length(), secondSlash);
         String sub = abs.substring(secondSlash + 1);
-        return dev + " > " + sub.replace("/", " > ");
+        return dev + sep + sub.replace("/", sep);
       }
     }
 
     String clean = abs;
     if (clean.startsWith("/")) clean = clean.substring(1);
-    return clean.isEmpty() ? "/" : clean.replace("/", " > ");
+    return clean.isEmpty() ? "/" : clean.replace("/", sep);
   }
 
   public void setSelectedEntity(FileSystemEntry position) {
@@ -508,6 +546,13 @@ public class DiskUsage extends LoadableActivity {
     menu.update(position);
     if (position == null) return;
     updateBarInfo(position);
+  }
+
+  @Override
+  public boolean onPrepareOptionsMenu(Menu menu) {
+    boolean res = super.onPrepareOptionsMenu(menu);
+    getWindow().getDecorView().post(this::compactActionBar);
+    return res;
   }
 
   @Override

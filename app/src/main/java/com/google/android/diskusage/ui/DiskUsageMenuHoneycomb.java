@@ -63,7 +63,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
     searchView = new SearchView(diskusage);
     origSearchBackground = searchView.getBackground();
     item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-    item.setIcon(android.R.drawable.ic_search_category_default);
+    item.setIcon(R.drawable.ic_action_search);
     item.setActionView(searchView);
     if (searchPattern != null) {
       searchView.setIconified(false);

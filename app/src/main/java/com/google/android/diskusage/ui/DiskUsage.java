@@ -677,11 +677,7 @@ public class DiskUsage extends LoadableActivity {
   public void showAboutDialog() {
     final com.google.android.diskusage.databinding.AboutDialogBinding binding =
         com.google.android.diskusage.databinding.AboutDialogBinding.inflate(getLayoutInflater(), null, false);
-    binding.sourceCode.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
-    binding.sourceCode.setText(android.text.Html.fromHtml(getString(
-        R.string.about_view_source_code,
-        "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
-    )));
+    binding.sourceCode.setVisibility(View.GONE);
     binding.icon.setImageBitmap(
         com.google.android.diskusage.utils.AppIconCache.getOrLoadBitmap(
             this,

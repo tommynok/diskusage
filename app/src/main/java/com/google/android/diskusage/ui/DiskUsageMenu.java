@@ -136,12 +136,7 @@ public abstract class DiskUsageMenu {
     aboutMenuItem.setOnMenuItemClickListener(item -> {
       final AboutDialogBinding binding =
               AboutDialogBinding.inflate(LayoutInflater.from(diskusage), null, false);
-      binding.sourceCode.setMovementMethod(LinkMovementMethod.getInstance());
-      binding.sourceCode.setText(Html.fromHtml(diskusage.getString(
-              R.string.about_view_source_code,
-              "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
-              ))
-      );
+      binding.sourceCode.setVisibility(View.GONE);
       binding.icon.setImageBitmap(
               AppIconCache.getOrLoadBitmap(
                       diskusage,

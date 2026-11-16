@@ -96,4 +96,18 @@
 </string-array>
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
     <string name="action_about">Informacje</string>
+    <string name="button_show_in_fm">W menedżerze plików</string>
+    <string name="menu_tips">Nowe funkcje</string>
+    <string name="tips_dialog_title">Co nowego w DiskUsage</string>
+    <string name="tip_bottom_sheet_title">Arkusz właściwości</string>
+    <string name="tip_bottom_sheet_desc">Dotknij tytułu na pasku lub ponownie dotknij pliku, aby wyświetlić szczegóły i działania.</string>
+    <string name="tip_copy_path_title">Szybkie kopiowanie</string>
+    <string name="tip_copy_path_desc">Przytrzymaj tytuł, aby natychmiast skopiować pełną ścieżkę do schowka.</string>
+    <string name="tip_file_manager_title">W menedżerze plików</string>
+    <string name="tip_file_manager_desc">Przejdź do pliku lub folderu w Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
+    <string name="tip_safe_delete_title">Bezpieczne usuwanie</string>
+    <string name="tip_safe_delete_desc">Usuwanie odbywa się z arkusza z potwierdzeniem, ochroną aplikacji i blokadą podczas wyszukiwania.</string>
+    <string name="tip_storage_title">Pamięć zewnętrzna</string>
+    <string name="tip_storage_desc">Wsparcie dla kart SD i USB OTG z ochroną partycji systemowych.</string>
+    <string name="button_got_it">Rozumiem</string>
 </resources>

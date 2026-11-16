@@ -111,6 +111,11 @@ public class DiskUsage extends LoadableActivity {
     diskUsageBinding = ActivityDiskusageBinding.inflate(getLayoutInflater());
     setContentView(diskUsageBinding.getRoot());
     initCustomToolbar();
+    android.content.SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+    if (!prefs.getBoolean("tips_fork_features_v1", false)) {
+      prefs.edit().putBoolean("tips_fork_features_v1", true).apply();
+      handler.postDelayed(this::showTipsDialog, 1000);
+    }
     menu.onCreate();
     Intent i = getIntent();
 
@@ -296,7 +301,7 @@ public class DiskUsage extends LoadableActivity {
 
     File file = new File(path);
     if (file.isDirectory()) {
-      openFolder(file, path);
+      openFolder(file, path, entry);
       return;
     }
 
@@ -313,25 +318,36 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
-  private void openFolder(File file, String path) {
-    Uri contentUri = contentUriFor(file);
-    PackageManager pm = getPackageManager();
+  public void revealInFileManager(FileSystemEntry entry) {
+    if (entry == null) return;
+    String path = entry.absolutePath();
+    if (path == null || path.isEmpty()) {
+      ToastKt.toast(R.string.no_viewer_found);
+      return;
+    }
+    File target = new File(path);
+    File folder = target.isDirectory() ? target : target.getParentFile();
+    if (folder == null) {
+      folder = target;
+    }
 
+    // 1. Total Commander (supports explicit deep link with focus on target file or folder)
+    try {
+      Intent tcIntent = new Intent(Intent.ACTION_VIEW);
+      tcIntent.setClassName("com.ghisler.android.TotalCommander", "com.ghisler.android.TotalCommander.TotalCommander");
+      tcIntent.putExtra("ghisler_fileName", target.getAbsolutePath());
+      tcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      startActivity(tcIntent);
+      return;
+    } catch (ActivityNotFoundException | SecurityException ignored) {
+    }
+
+    // 2. Folder probe via content URI
+    Uri contentUri = contentUriFor(folder);
     if (contentUri != null) {
-      // 1. Probe resource/folder (Total Commander, MiXplorer convention)
-      Intent probeTc = new Intent(Intent.ACTION_VIEW);
-      probeTc.setDataAndType(contentUri, "resource/folder");
-      probeTc.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-      List<ResolveInfo> rs = pm.queryIntentActivities(probeTc, PackageManager.MATCH_DEFAULT_ONLY);
-      if (rs != null && !rs.isEmpty()) {
-        try {
-          startActivity(rs.size() == 1 ? probeTc : Intent.createChooser(probeTc, null));
-          return;
-        } catch (ActivityNotFoundException | SecurityException ignored) {
-        }
-      }
+      PackageManager pm = getPackageManager();
 
-      // 2. Probe inode/directory
+      // Probe Material Files & standard Linux directory viewers (inode/directory)
       Intent probeInode = new Intent(Intent.ACTION_VIEW);
       probeInode.setDataAndType(contentUri, "inode/directory");
       probeInode.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -339,6 +355,19 @@ public class DiskUsage extends LoadableActivity {
       if (inodeRs != null && !inodeRs.isEmpty()) {
         try {
           startActivity(inodeRs.size() == 1 ? probeInode : Intent.createChooser(probeInode, null));
+          return;
+        } catch (ActivityNotFoundException | SecurityException ignored) {
+        }
+      }
+
+      // Probe Solid Explorer / MiXplorer (resource/folder)
+      Intent probeTc = new Intent(Intent.ACTION_VIEW);
+      probeTc.setDataAndType(contentUri, "resource/folder");
+      probeTc.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+      List<ResolveInfo> rs = pm.queryIntentActivities(probeTc, PackageManager.MATCH_DEFAULT_ONLY);
+      if (rs != null && !rs.isEmpty()) {
+        try {
+          startActivity(rs.size() == 1 ? probeTc : Intent.createChooser(probeTc, null));
           return;
         } catch (ActivityNotFoundException | SecurityException ignored) {
         }
@@ -351,6 +380,10 @@ public class DiskUsage extends LoadableActivity {
       cb.setPrimaryClip(ClipData.newPlainText("path", path));
     }
     Toast.makeText(this, getString(R.string.path_copied, path), Toast.LENGTH_SHORT).show();
+  }
+
+  private void openFolder(File file, String path, FileSystemEntry entry) {
+    revealInFileManager(entry);
   }
 
   private void openFile(File file, String path, FileSystemEntry entry) {
@@ -509,22 +542,10 @@ public class DiskUsage extends LoadableActivity {
     android.widget.PopupMenu popup = new android.widget.PopupMenu(this, diskUsageBinding.topToolbar.btnOverflow);
     Menu m = popup.getMenu();
     MenuItem itemRescan = m.add(0, 1, 0, R.string.button_rescan);
-    MenuItem itemDelete = m.add(0, 2, 0, R.string.button_delete);
     boolean isGPU = fileSystemState != null && fileSystemState.isGPU();
-    MenuItem itemRenderer = m.add(0, 3, 0, isGPU ? R.string.renderer_software : R.string.renderer_hardware);
+    MenuItem itemRenderer = m.add(0, 2, 0, isGPU ? R.string.renderer_software : R.string.renderer_hardware);
+    MenuItem itemTips = m.add(0, 3, 0, R.string.menu_tips);
     MenuItem itemAbout = m.add(0, 4, 0, R.string.action_about);
-
-    boolean view = currentSelectedEntity != null && fileSystemState != null && fileSystemState.masterRoot != null
-        && !(currentSelectedEntity == fileSystemState.masterRoot.children[0]
-             || currentSelectedEntity instanceof FileSystemSpecial
-             || currentSelectedEntity instanceof FileSystemPackage);
-    boolean fileOrNotSearching = diskUsageBinding.topToolbar.searchContainer.getVisibility() != View.VISIBLE
-        || currentSelectedEntity == null || currentSelectedEntity.children == null;
-    MountPoint mountPoint = MountPoint.getForKey(this, getKey());
-    boolean isDeletableTarget = view && currentSelectedEntity.isDeletable()
-        && mountPoint != null && mountPoint.isDeleteSupported();
-    itemDelete.setVisible(isDeletableTarget);
-    itemDelete.setEnabled(isDeletableTarget);
 
     popup.setOnMenuItemClickListener(item -> {
       switch (item.getItemId()) {
@@ -532,18 +553,12 @@ public class DiskUsage extends LoadableActivity {
           rescan();
           return true;
         case 2:
-          if (currentSelectedEntity != null) {
-            if (!fileOrNotSearching) {
-              Toast.makeText(DiskUsage.this, R.string.delete_folder_during_search_disabled, Toast.LENGTH_SHORT).show();
-            } else {
-              askForDeletion(currentSelectedEntity);
-            }
-          }
-          return true;
-        case 3:
           if (menu != null && menu.masterRoot != null) {
             rendererManager.switchRenderer(menu.masterRoot);
           }
+          return true;
+        case 3:
+          showTipsDialog();
           return true;
         case 4:
           showAboutDialog();
@@ -552,6 +567,23 @@ public class DiskUsage extends LoadableActivity {
       return false;
     });
     popup.show();
+  }
+
+  public void showTipsDialog() {
+    Dialog dialog = new Dialog(this);
+    dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+    com.google.android.diskusage.databinding.DialogForkTipsBinding binding =
+        com.google.android.diskusage.databinding.DialogForkTipsBinding.inflate(getLayoutInflater());
+    dialog.setContentView(binding.getRoot());
+
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+      dialog.getWindow().setGravity(Gravity.BOTTOM);
+    }
+
+    binding.btnTipsClose.setOnClickListener(v -> dialog.dismiss());
+    dialog.show();
   }
 
   public void showDetailBottomSheet(FileSystemEntry entry) {
@@ -607,6 +639,12 @@ public class DiskUsage extends LoadableActivity {
     binding.btnSheetOpen.setOnClickListener(v -> {
       dialog.dismiss();
       view(entry);
+    });
+
+    binding.btnOpenFm.setVisibility(canOpen ? View.VISIBLE : View.GONE);
+    binding.btnOpenFm.setOnClickListener(v -> {
+      dialog.dismiss();
+      revealInFileManager(entry);
     });
 
     boolean fileOrNotSearching = diskUsageBinding != null

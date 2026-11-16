@@ -66,12 +66,23 @@
                 android:id="@+id/btn_copy_path"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="6dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_action_copy"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:contentDescription="@string/button_copy" />
+
+            <ImageButton
+                android:id="@+id/btn_open_fm"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_action_open"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/button_show_in_fm" />
 
         </LinearLayout>
 

@@ -30,14 +30,19 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="resource/folder" />
         </intent>
-        <package android:name="com.totalcommander" />
+        <package android:name="me.zhanghai.android.files" />
         <package android:name="com.ghisler.android.TotalCommander" />
+        <package android:name="com.totalcommander" />
+        <package android:name="pl.solidexplorer2" />
+        <package android:name="pl.solidexplorer" />
         <package android:name="com.mixplorer" />
+        <package android:name="com.mixplorer.silver" />
         <package android:name="com.mixplorer.alpha" />
         <package android:name="com.google.android.apps.nbu.files" />
         <package android:name="com.google.android.apps.docs" />
-        <package android:name="com.solofody.ndx.app.galaxy.solidexplorer2" />
         <package android:name="com.mobilesystems.mifiles" />
+        <package android:name="moe.shizuku.privileged.api" />
+        <package android:name="eu.darken.porter" />
     </queries>
 
     <application android:icon="@drawable/icon"

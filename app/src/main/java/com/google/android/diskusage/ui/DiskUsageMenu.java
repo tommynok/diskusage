@@ -34,7 +34,7 @@ public abstract class DiskUsageMenu {
   protected MenuItem searchMenuItem;
   protected MenuItem showMenuItem;
   protected MenuItem rescanMenuItem;
-  protected MenuItem deleteMenuItem;
+  protected MenuItem tipsMenuItem;
   protected MenuItem rendererMenuItem;
   protected MenuItem aboutMenuItem;
 
@@ -119,9 +119,9 @@ public abstract class DiskUsageMenu {
       return true;
     });
 
-    deleteMenuItem = menu.add(getString(R.string.button_delete));
-    deleteMenuItem.setOnMenuItemClickListener(item -> {
-      diskusage.askForDeletion(selectedEntity);
+    tipsMenuItem = menu.add(R.string.menu_tips);
+    tipsMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.showTipsDialog();
       return true;
     });
 
@@ -174,7 +174,6 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(false);
-      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
       return;
     }
@@ -183,7 +182,6 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(true);
-      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
     }
 
@@ -204,7 +202,6 @@ public abstract class DiskUsageMenu {
     MountPoint mountPoint = MountPoint.getForKey(diskusage, diskusage.getKey());
     boolean isDeletableTarget = view && selectedEntity.isDeletable()
         && mountPoint != null && mountPoint.isDeleteSupported();
-    deleteMenuItem.setVisible(isDeletableTarget);
-    deleteMenuItem.setEnabled(isDeletableTarget && fileOrNotSearching);
+
   }
 }

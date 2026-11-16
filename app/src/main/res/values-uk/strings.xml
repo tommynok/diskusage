@@ -120,4 +120,18 @@
     <string name="total_files_count">Всього файлів: %d</string>
     <string name="renderer_software">Програмний рендерер</string>
     <string name="renderer_hardware">Апаратний рендерер</string>
+    <string name="button_show_in_fm">У провіднику</string>
+    <string name="menu_tips">Нові функції</string>
+    <string name="tips_dialog_title">Що нового в DiskUsage</string>
+    <string name="tip_bottom_sheet_title">Шторка властивостей</string>
+    <string name="tip_bottom_sheet_desc">Натисніть на заголовок на панелі або повторно торкніться файлу, щоб відкрити деталі та дії.</string>
+    <string name="tip_copy_path_title">Швидке копіювання</string>
+    <string name="tip_copy_path_desc">Затисніть заголовок пальцем, щоб миттєво скопіювати повний шлях до буфера обміну.</string>
+    <string name="tip_file_manager_title">У провіднику</string>
+    <string name="tip_file_manager_desc">Переходьте до файлу або папки в Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
+    <string name="tip_safe_delete_title">Безпечне видалення</string>
+    <string name="tip_safe_delete_desc">Видалення виконується зі шторки з підтвердженням, захистом додатків і блокуванням при пошуку.</string>
+    <string name="tip_storage_title">Зовнішні накопичувачі</string>
+    <string name="tip_storage_desc">Підтримка очищення SD-карт і USB OTG з надійним захистом системних root-розділів.</string>
+    <string name="button_got_it">Зрозуміло</string>
 </resources>

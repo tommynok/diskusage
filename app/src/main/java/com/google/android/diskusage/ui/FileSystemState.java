@@ -70,6 +70,10 @@ public class FileSystemState {
     public void warnOnFileSelect() {
     }
 
+    public void showDetails(FileSystemEntry entry) {
+      context.showDetailBottomSheet(entry);
+    }
+
     public void view(FileSystemEntry entry) {
       context.view(entry);
     }
@@ -101,6 +105,11 @@ public class FileSystemState {
     @Override
     public void warnOnFileSelect() {
       context.handler.post(() -> ToastKt.toast(R.string.warn_on_file_select));
+    }
+
+    @Override
+    public void showDetails(final FileSystemEntry entry) {
+      context.handler.post(() -> context.showDetailBottomSheet(entry));
     }
 
     @Override
@@ -829,9 +838,8 @@ public class FileSystemState {
       fullZoom = false;
       if (targetViewTop == prevViewTop
           && targetViewBottom == prevViewBottom) {
-        if ((!warnOnFileSelect) && (!(entry instanceof FileSystemSystemSpace))) {
-          mainThreadAction.warnOnFileSelect();
-          warnOnFileSelect = true;
+        if (!(entry instanceof FileSystemSpecial)) {
+          mainThreadAction.showDetails(entry);
         }
       }
       float minRequiredDepth = cursor.depth + 1 + (has_children ? 1 : 0) - maxLevels;

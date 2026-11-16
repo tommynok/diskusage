@@ -26,6 +26,8 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -274,9 +276,6 @@ public class DiskUsage extends LoadableActivity {
   }
 
   public void view(FileSystemEntry entry) {
-    Intent intent = new Intent(Intent.ACTION_VIEW);
-    intent.addCategory(Intent.CATEGORY_DEFAULT);
-
     if (entry instanceof FileSystemEntrySmall) {
       entry = entry.parent;
     }
@@ -290,90 +289,101 @@ public class DiskUsage extends LoadableActivity {
     }
 
     String path = entry.absolutePath();
-    File file = new File(path);
-    Uri uri = Uri.fromFile(file);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
-    }
-
-    if (file.isDirectory()) {
-      // Go on with default file manager
-      // Shoud this be optional?
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "inode/directory");
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException ignored) {
-      }
-
-      intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
-      intent = new Intent("org.openintents.action.PICK_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-      intent.putExtra("org.openintents.extra.TITLE",
-          getString(R.string.title_in_oi_file_manager));
-      intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          getString(R.string.button_text_in_oi_file_manager));
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
-      // old Astro
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_DEFAULT);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
+    if (path == null || path.isEmpty()) {
       ToastKt.toast(R.string.no_viewer_found);
       return;
     }
 
-    String fileName = entry.name;
+    File file = new File(path);
+    if (file.isDirectory()) {
+      openFolder(file, path);
+      return;
+    }
+
+    openFile(file, path, entry);
+  }
+
+  private Uri contentUriFor(File f) {
+    if (f == null) return null;
+    try {
+      return FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", f);
+    } catch (IllegalArgumentException | SecurityException outsideRoots) {
+      Log.w("diskusage", "File outside provider roots: " + f.getAbsolutePath());
+      return null;
+    }
+  }
+
+  private void openFolder(File file, String path) {
+    Uri contentUri = contentUriFor(file);
+    PackageManager pm = getPackageManager();
+
+    if (contentUri != null) {
+      // 1. Probe resource/folder (Total Commander, MiXplorer convention)
+      Intent probeTc = new Intent(Intent.ACTION_VIEW);
+      probeTc.setDataAndType(contentUri, "resource/folder");
+      probeTc.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+      List<ResolveInfo> rs = pm.queryIntentActivities(probeTc, PackageManager.MATCH_DEFAULT_ONLY);
+      if (rs != null && !rs.isEmpty()) {
+        try {
+          startActivity(rs.size() == 1 ? probeTc : Intent.createChooser(probeTc, null));
+          return;
+        } catch (ActivityNotFoundException | SecurityException ignored) {
+        }
+      }
+
+      // 2. Probe inode/directory
+      Intent probeInode = new Intent(Intent.ACTION_VIEW);
+      probeInode.setDataAndType(contentUri, "inode/directory");
+      probeInode.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+      List<ResolveInfo> inodeRs = pm.queryIntentActivities(probeInode, PackageManager.MATCH_DEFAULT_ONLY);
+      if (inodeRs != null && !inodeRs.isEmpty()) {
+        try {
+          startActivity(inodeRs.size() == 1 ? probeInode : Intent.createChooser(probeInode, null));
+          return;
+        } catch (ActivityNotFoundException | SecurityException ignored) {
+        }
+      }
+    }
+
+    // 3. Fallback: Copy path to clipboard and toast
+    ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+    if (cb != null) {
+      cb.setPrimaryClip(ClipData.newPlainText("path", path));
+    }
+    Toast.makeText(this, getString(R.string.path_copied, path), Toast.LENGTH_SHORT).show();
+  }
+
+  private void openFile(File file, String path, FileSystemEntry entry) {
+    Uri contentUri = contentUriFor(file);
+    if (contentUri == null) {
+      ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+      if (cb != null) {
+        cb.setPrimaryClip(ClipData.newPlainText("path", path));
+      }
+      Toast.makeText(this, getString(R.string.path_copied, path), Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    String fileName = (entry.name != null && !entry.name.isEmpty()) ? entry.name : file.getName();
     int dot = fileName.lastIndexOf(".");
-    Log.d("diskusage", "name: " + fileName + " path: " + path + " dot: " + dot);
+    String mime = null;
     if (dot != -1) {
       String extension = fileName.substring(dot + 1).toLowerCase();
+      mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+    }
+    if (mime == null) {
+      mime = "*/*";
+    }
 
-      MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-      String mime = mimeTypeMap.getMimeTypeFromExtension(extension);
-      Log.d("diskusage", "extension: " + extension + " mime: " + mime);
-
-      try {
-        intent = new Intent(Intent.ACTION_VIEW);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-        if (mime != null) {
-          intent.setDataAndType(uri, mime);
-        } else {
-          intent.setDataAndType(uri, "binary/octet-stream");
-        }
-        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-        Log.e("diskusage", "Can't open viewer and crash", ignored);
-      }
+    try {
+      Intent intent = new Intent(Intent.ACTION_VIEW);
+      intent.addCategory(Intent.CATEGORY_DEFAULT);
+      intent.setDataAndType(contentUri, mime);
+      intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+      startActivity(Intent.createChooser(intent, null));
+      return;
+    } catch (ActivityNotFoundException | SecurityException ignored) {
+      Log.e("diskusage", "Can't open viewer for file", ignored);
     }
     ToastKt.toast(R.string.no_viewer_found);
   }

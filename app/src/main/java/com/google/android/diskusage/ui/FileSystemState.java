@@ -21,6 +21,7 @@ package com.google.android.diskusage.ui;
 
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
+import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
 import com.google.android.diskusage.filesystem.entity.FileSystemFreeSpace;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;

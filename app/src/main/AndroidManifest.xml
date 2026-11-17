@@ -5,7 +5,7 @@
     android:versionCode="5001"
     android:versionName="5.0-alpha1">
 
-    <uses-sdk tools:overrideLibrary="moe.shizuku.provider, dev.rikka.shizuku.provider, rikka.shizuku.provider, rikka.shizuku.api, rikka.shizuku.shared" />
+    <uses-sdk tools:overrideLibrary="moe.shizuku.provider, rikka.shizuku.aidl, rikka.shizuku.api, rikka.shizuku.provider, rikka.shizuku.shared, dev.rikka.shizuku.provider, dev.rikka.shizuku.api, dev.rikka.shizuku.aidl" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>

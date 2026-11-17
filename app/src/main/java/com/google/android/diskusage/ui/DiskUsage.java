@@ -116,6 +116,9 @@ public class DiskUsage extends LoadableActivity {
       prefs.edit().putBoolean("tips_fork_features_v1", true).apply();
       handler.postDelayed(this::showTipsDialog, 1000);
     }
+    try {
+      rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
+    } catch (Throwable ignored) {}
     menu.onCreate();
     Intent i = getIntent();
 
@@ -537,6 +540,51 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
+  private static final int SHIZUKU_REQ_CODE = 4001;
+
+  private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
+      (requestCode, grantResult) -> {
+        if (requestCode == SHIZUKU_REQ_CODE) {
+          if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            String mode = "";
+            try {
+              int uid = rikka.shizuku.Shizuku.getUid();
+              mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
+            } catch (Throwable ignored) {}
+            Toast.makeText(this, getString(R.string.shizuku_permission_granted) + mode, Toast.LENGTH_SHORT).show();
+          }
+        }
+      };
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    try {
+      rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
+    } catch (Throwable ignored) {}
+  }
+
+  public void requestShizukuAccess() {
+    try {
+      if (!rikka.shizuku.Shizuku.pingBinder()) {
+        Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
+        return;
+      }
+      if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+        String mode = "";
+        try {
+          int uid = rikka.shizuku.Shizuku.getUid();
+          mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
+        } catch (Throwable ignored) {}
+        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
+        return;
+      }
+      rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
+    } catch (Throwable t) {
+      Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
+    }
+  }
+
   private void showOverflowMenu() {
     if (diskUsageBinding == null) return;
     android.widget.PopupMenu popup = new android.widget.PopupMenu(this, diskUsageBinding.topToolbar.btnOverflow);
@@ -544,6 +592,7 @@ public class DiskUsage extends LoadableActivity {
     MenuItem itemRescan = m.add(0, 1, 0, R.string.button_rescan);
     boolean isGPU = fileSystemState != null && fileSystemState.isGPU();
     MenuItem itemRenderer = m.add(0, 2, 0, isGPU ? R.string.renderer_software : R.string.renderer_hardware);
+    MenuItem itemShizuku = m.add(0, 5, 0, R.string.menu_shizuku);
     MenuItem itemTips = m.add(0, 3, 0, R.string.menu_tips);
     MenuItem itemAbout = m.add(0, 4, 0, R.string.action_about);
 
@@ -562,6 +611,9 @@ public class DiskUsage extends LoadableActivity {
           return true;
         case 4:
           showAboutDialog();
+          return true;
+        case 5:
+          requestShizukuAccess();
           return true;
       }
       return false;

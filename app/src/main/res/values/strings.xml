@@ -121,8 +121,12 @@
     <string name="renderer_software">Software Renderer</string>
     <string name="renderer_hardware">Hardware Renderer</string>
     <string name="button_show_in_fm">In File Manager</string>
-    <string name="menu_tips">New features</string>
-    <string name="tips_dialog_title">What\'s New in DiskUsage — Guide</string>
+    <string name="menu_tips">Help</string>
+    <string name="tips_dialog_title">Help</string>
+    <string name="menu_shizuku">Shizuku access</string>
+    <string name="shizuku_not_running">Shizuku service is not running</string>
+    <string name="shizuku_permission_granted">Shizuku access granted</string>
+    <string name="shizuku_permission_already_granted">Shizuku access is already granted</string>
     <string name="tip_bottom_sheet_title">Properties Panel</string>
     <string name="tip_bottom_sheet_desc">Tap the toolbar title or re-tap a file to open full details and actions.</string>
     <string name="tip_copy_path_title">Quick Path Copy</string>

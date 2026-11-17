@@ -125,6 +125,12 @@ public abstract class DiskUsageMenu {
       return true;
     });
 
+    MenuItem shizukuMenuItem = menu.add(R.string.menu_shizuku);
+    shizukuMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.requestShizukuAccess();
+      return true;
+    });
+
     rendererMenuItem = menu.add("Renderer");
     rendererMenuItem.setVisible(true);
     rendererMenuItem.setOnMenuItemClickListener(item -> {

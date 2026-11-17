@@ -121,8 +121,12 @@
     <string name="renderer_software">Программный рендерер</string>
     <string name="renderer_hardware">Аппаратный рендерер</string>
     <string name="button_show_in_fm">В проводнике</string>
-    <string name="menu_tips">Новые функции</string>
-    <string name="tips_dialog_title">Что нового в DiskUsage — Справка</string>
+    <string name="menu_tips">Справка</string>
+    <string name="tips_dialog_title">Справка</string>
+    <string name="menu_shizuku">Доступ к Shizuku</string>
+    <string name="shizuku_not_running">Служба Shizuku не запущена</string>
+    <string name="shizuku_permission_granted">Доступ к Shizuku разрешён</string>
+    <string name="shizuku_permission_already_granted">Доступ к Shizuku уже предоставлен</string>
     <string name="tip_bottom_sheet_title">Панель свойств</string>
     <string name="tip_bottom_sheet_desc">Нажмите на заголовок вверху или повторно коснитесь файла, чтобы открыть подробные сведения и действия.</string>
     <string name="tip_copy_path_title">Быстрое копирование</string>

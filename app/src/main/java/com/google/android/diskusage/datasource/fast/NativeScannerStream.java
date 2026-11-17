@@ -78,23 +78,47 @@ public class NativeScannerStream extends InputStream {
       String binaryPath = getScanBinaryPath(binaryName);
       Process process = null;
 
-      boolean useRoot = rootRequired || DeviceHelper.isDeviceRooted();
-      if (useRoot) {
+      boolean useDirectSu = DeviceHelper.isDeviceRooted();
+      boolean useShizuku = DeviceHelper.isShizukuGranted();
+
+      if (useDirectSu) {
         try {
           process = runWithSu(binaryPath, root);
         } catch (IOException e) {
-          if (!rootRequired) {
-            process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
-          } else {
-            throw e;
-          }
+          Logger.getLOGGER().e("NativeScannerStream: direct su failed: %s", e.getMessage());
         }
-      } else {
+      }
+
+      if (process == null && useShizuku) {
+        try {
+          process = runWithShizuku(binaryPath, root);
+        } catch (IOException e) {
+          Logger.getLOGGER().e("NativeScannerStream: Shizuku execution failed: %s", e.getMessage());
+        }
+      }
+
+      if (process == null) {
+        if (rootRequired) {
+          throw new IOException("Failed to obtain elevated process (su or Shizuku) to scan " + root);
+        }
         process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
       }
 
       InputStream is = process.getInputStream();
       return new NativeScannerStream(is, process);
+    }
+
+    private static Process runWithShizuku(String binaryPath, String root) throws IOException {
+      String cmd = "TMP=/data/local/tmp/du_scan_$(id -u 2>/dev/null || echo 0); "
+                 + "cp -f \"" + binaryPath + "\" \"$TMP\" 2>/dev/null; "
+                 + "chmod 755 \"$TMP\" 2>/dev/null; "
+                 + "\"$TMP\" \"" + root + "\" || \"" + binaryPath + "\" \"" + root + "\"";
+      try {
+        Logger.getLOGGER().d("NativeScannerStream: executing via Shizuku: %s", cmd);
+        return rikka.shizuku.Shizuku.newProcess(new String[] { "sh", "-c", cmd }, null, null);
+      } catch (Throwable t) {
+        throw new IOException("Failed to execute via Shizuku: " + t.getMessage(), t);
+      }
     }
 
     private static Process runWithSu(String binaryPath, String root) throws IOException {

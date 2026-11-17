@@ -24,6 +24,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import androidx.annotation.NonNull;
@@ -44,10 +45,25 @@ import java.util.TreeMap;
 
 public class SelectActivity extends Activity {
   private static final String BUNDLE_KEYS = "keys";
+  private static final int SHIZUKU_REQ_CODE = 4001;
+
   private AlertDialog dialog;
   Map<String, Bundle> bundles = new TreeMap<>();
   ArrayList<Runnable> actionList = new ArrayList<>();
   private boolean expandRootMountPoints;
+
+  private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
+      (requestCode, grantResult) -> {
+        if (requestCode == SHIZUKU_REQ_CODE && grantResult == PackageManager.PERMISSION_GRANTED) {
+          runOnUiThread(this::makeDialog);
+        }
+      };
+
+  private final rikka.shizuku.Shizuku.OnBinderReceivedListener shizukuBinderReceivedListener = () -> {
+    if (DeviceHelper.isElevated()) {
+      runOnUiThread(this::makeDialog);
+    }
+  };
 
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, Class<?> viewer) {
@@ -110,6 +126,12 @@ public class SelectActivity extends Activity {
 
 
   public void makeDialog() {
+    if (dialog != null && dialog.isShowing()) {
+      try {
+        dialog.dismiss();
+      } catch (Throwable ignored) {}
+    }
+
     ArrayList<String> options = new ArrayList<>();
     actionList.clear();
 
@@ -119,23 +141,32 @@ public class SelectActivity extends Activity {
       actionList.add(new DiskUsageAction(mountPoint));
     }
 
-    if (DeviceHelper.isDeviceRooted()) {
+    boolean showRootMounts = DeviceHelper.isElevated() || expandRootMountPoints;
+    if (showRootMounts) {
       SharedPreferences prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-      if (prefs.contains("initialized") || expandRootMountPoints) {
-        for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
-          if (!RootMountPoint.isMountPointVisible(prefs, mountPoint.getRoot())) continue;
-          options.add(mountPoint.getRoot());
-          actionList.add(new DiskUsageAction(mountPoint));
-        }
-        options.add(getString(R.string.option_show_hide));
-        actionList.add(new ShowHideAction());
-      } else {
-        options.add(getString(R.string.option_root_required));
-        actionList.add(() -> {
-          expandRootMountPoints = true;
-          makeDialog();
-        });
+      for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
+        if (!RootMountPoint.isMountPointVisible(prefs, mountPoint.getRoot())) continue;
+        options.add(mountPoint.getRoot());
+        actionList.add(new DiskUsageAction(mountPoint));
       }
+      options.add(getString(R.string.option_show_hide));
+      actionList.add(new ShowHideAction());
+    } else {
+      options.add(getString(R.string.option_root_required));
+      actionList.add(() -> {
+        try {
+          if (rikka.shizuku.Shizuku.pingBinder()) {
+            if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+              makeDialog();
+              return;
+            }
+            rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
+            return;
+          }
+        } catch (Throwable ignored) {}
+        expandRootMountPoints = true;
+        makeDialog();
+      });
     }
 
     final String[] optionsArray = options.toArray(new String[0]);
@@ -168,12 +199,25 @@ public class SelectActivity extends Activity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    try {
+      rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener);
+      rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
+    } catch (Throwable ignored) {}
     com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
     FileSystemEntry.setupStrings(this);
     ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
 //    ActionBar bar = getActionBar();
 //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    try {
+      rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
+      rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
+    } catch (Throwable ignored) {}
   }
 
   @Override

@@ -208,6 +208,17 @@ public class RootMountPoint extends MountPoint {
     } catch (Exception e) {
       Logger.getLOGGER().e("RootMountPoint.initMountPoints(): Failed to get mount points", e);
     }
+
+    if (rootedMountPoints.isEmpty()) {
+      for (String defMount : new String[]{"/", "/data", "/system"}) {
+        if (!rootedMountPointForKey.containsKey("rooted:" + defMount)) {
+          MountPoint m = new RootMountPoint(defMount, "ext4");
+          rawMountPoints.add(m);
+          rootedMountPointForKey.put(m.getKey(), m);
+          rootedMountPoints.add(m);
+        }
+      }
+    }
   }
 
   public static void reset() {

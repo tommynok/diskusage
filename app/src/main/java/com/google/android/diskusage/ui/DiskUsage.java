@@ -30,9 +30,11 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -42,6 +44,9 @@ import android.os.StrictMode;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
+import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
+import android.widget.TextView;
 
 import android.util.Log;
 import android.view.Menu;
@@ -344,6 +349,39 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
+  private static class FileManagerTarget {
+    final CharSequence name;
+    final Drawable icon;
+    final String packageName;
+    final Runnable launch;
+
+    FileManagerTarget(CharSequence name, Drawable icon, String packageName, Runnable launch) {
+      this.name = name;
+      this.icon = icon;
+      this.packageName = packageName;
+      this.launch = launch;
+    }
+  }
+
+  private CharSequence getAppLabel(String packageName, String fallback) {
+    try {
+      PackageManager pm = getPackageManager();
+      ApplicationInfo ai = pm.getApplicationInfo(packageName, 0);
+      return pm.getApplicationLabel(ai);
+    } catch (Throwable ignored) {
+      return fallback;
+    }
+  }
+
+  private Drawable getAppIcon(String packageName) {
+    try {
+      PackageManager pm = getPackageManager();
+      return pm.getApplicationIcon(packageName);
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
   public void revealInFileManager(FileSystemEntry entry) {
     if (entry == null) return;
     String path = entry.absolutePath();
@@ -354,75 +392,99 @@ public class DiskUsage extends LoadableActivity {
     File target = new File(path);
     final File folder = (target.isDirectory() || target.getParentFile() == null) ? target : target.getParentFile();
 
+    List<FileManagerTarget> targets = new ArrayList<>();
+    PackageManager pm = getPackageManager();
+
     // 1. Total Commander (direct intent focusing on target file or folder)
     if (isPackageInstalled("com.ghisler.android.TotalCommander")) {
-      try {
-        Intent tcIntent = new Intent(Intent.ACTION_VIEW);
-        tcIntent.setClassName("com.ghisler.android.TotalCommander", "com.ghisler.android.TotalCommander.TotalCommander");
-        tcIntent.putExtra("ghisler_fileName", target.getAbsolutePath());
-        tcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(tcIntent);
-        return;
-      } catch (Throwable ignored) {
-      }
+      CharSequence label = getAppLabel("com.ghisler.android.TotalCommander", "Total Commander");
+      Drawable icon = getAppIcon("com.ghisler.android.TotalCommander");
+      targets.add(new FileManagerTarget(label, icon, "com.ghisler.android.TotalCommander", () -> {
+        try {
+          Intent tcIntent = new Intent(Intent.ACTION_VIEW);
+          tcIntent.setClassName("com.ghisler.android.TotalCommander", "com.ghisler.android.TotalCommander.TotalCommander");
+          tcIntent.putExtra("ghisler_fileName", target.getAbsolutePath());
+          tcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          startActivity(tcIntent);
+        } catch (Throwable t) {
+          Logger.getLOGGER().e(t, "Failed to launch Total Commander");
+        }
+      }));
     }
 
     // 2. Material Files (direct intent using file scheme and inode/directory)
     if (isPackageInstalled("me.zhanghai.android.files")) {
-      try {
-        launchWithFileUriExposureAllowed(() -> {
-          Intent mfIntent = new Intent(Intent.ACTION_VIEW);
-          mfIntent.setPackage("me.zhanghai.android.files");
-          mfIntent.setDataAndType(Uri.fromFile(folder), "inode/directory");
-          mfIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
-          mfIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          startActivity(mfIntent);
-        });
-        return;
-      } catch (Throwable ignored) {
-      }
+      CharSequence label = getAppLabel("me.zhanghai.android.files", "Material Files");
+      Drawable icon = getAppIcon("me.zhanghai.android.files");
+      targets.add(new FileManagerTarget(label, icon, "me.zhanghai.android.files", () -> {
+        try {
+          launchWithFileUriExposureAllowed(() -> {
+            Intent mfIntent = new Intent(Intent.ACTION_VIEW);
+            mfIntent.setPackage("me.zhanghai.android.files");
+            mfIntent.setDataAndType(Uri.fromFile(folder), "inode/directory");
+            mfIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+            mfIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(mfIntent);
+          });
+        } catch (Throwable t) {
+          Logger.getLOGGER().e(t, "Failed to launch Material Files");
+        }
+      }));
     }
 
     // 3. Solid Explorer (direct intent using resource/folder and ABSOLUTE_PATH)
     String solidPkg = isPackageInstalled("pl.solidexplorer2") ? "pl.solidexplorer2"
         : (isPackageInstalled("pl.solidexplorer") ? "pl.solidexplorer" : null);
     if (solidPkg != null) {
-      try {
-        launchWithFileUriExposureAllowed(() -> {
-          Intent seIntent = new Intent(Intent.ACTION_VIEW);
-          seIntent.setPackage(solidPkg);
-          seIntent.setDataAndType(Uri.fromFile(folder), "resource/folder");
-          seIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
-          seIntent.putExtra("path", folder.getAbsolutePath());
-          seIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          startActivity(seIntent);
-        });
-        return;
-      } catch (Throwable ignored) {
-      }
+      final String finalSolidPkg = solidPkg;
+      CharSequence label = getAppLabel(solidPkg, "Solid Explorer");
+      Drawable icon = getAppIcon(solidPkg);
+      targets.add(new FileManagerTarget(label, icon, solidPkg, () -> {
+        try {
+          launchWithFileUriExposureAllowed(() -> {
+            Intent seIntent = new Intent(Intent.ACTION_VIEW);
+            seIntent.setPackage(finalSolidPkg);
+            seIntent.setDataAndType(Uri.fromFile(folder), "resource/folder");
+            seIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+            seIntent.putExtra("path", folder.getAbsolutePath());
+            seIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(seIntent);
+          });
+        } catch (Throwable t) {
+          Logger.getLOGGER().e(t, "Failed to launch Solid Explorer");
+        }
+      }));
     }
 
     // 4. MiXplorer (direct intent using resource/folder and ABSOLUTE_PATH)
-    for (String mixPkg : new String[]{"com.mixplorer", "com.mixplorer.silver", "com.mixplorer.beta"}) {
-      if (isPackageInstalled(mixPkg)) {
+    String mixPkg = null;
+    for (String pkg : new String[]{"com.mixplorer", "com.mixplorer.silver", "com.mixplorer.beta"}) {
+      if (isPackageInstalled(pkg)) {
+        mixPkg = pkg;
+        break;
+      }
+    }
+    if (mixPkg != null) {
+      final String finalMixPkg = mixPkg;
+      CharSequence label = getAppLabel(mixPkg, "MiXplorer");
+      Drawable icon = getAppIcon(mixPkg);
+      targets.add(new FileManagerTarget(label, icon, mixPkg, () -> {
         try {
           launchWithFileUriExposureAllowed(() -> {
             Intent mixIntent = new Intent(Intent.ACTION_VIEW);
-            mixIntent.setPackage(mixPkg);
+            mixIntent.setPackage(finalMixPkg);
             mixIntent.setDataAndType(Uri.fromFile(folder), "resource/folder");
             mixIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
             mixIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(mixIntent);
           });
-          return;
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+          Logger.getLOGGER().e(t, "Failed to launch MiXplorer");
         }
-      }
+      }));
     }
 
-    // 5. Generic file manager probe via Intent Chooser (using file scheme)
-    PackageManager pm = getPackageManager();
-    final boolean[] launched = new boolean[]{false};
+    // 5. Query any other installed file manager capable of viewing directories
     launchWithFileUriExposureAllowed(() -> {
       for (String mime : new String[]{"resource/folder", "inode/directory", "vnd.android.document/directory"}) {
         Intent probe = new Intent(Intent.ACTION_VIEW);
@@ -430,42 +492,89 @@ public class DiskUsage extends LoadableActivity {
         probe.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
         probe.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         List<ResolveInfo> list = pm.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY);
-        if (list != null && !list.isEmpty()) {
-          try {
-            startActivity(list.size() == 1 ? probe : Intent.createChooser(probe, null));
-            launched[0] = true;
-            return;
-          } catch (Throwable ignored) {
+        if (list != null) {
+          for (ResolveInfo info : list) {
+            if (info.activityInfo == null || info.activityInfo.packageName == null) continue;
+            String pkg = info.activityInfo.packageName;
+            if (pkg.equals("com.ghisler.android.TotalCommander")
+                || pkg.equals("me.zhanghai.android.files")
+                || pkg.equals("pl.solidexplorer2")
+                || pkg.equals("pl.solidexplorer")
+                || pkg.startsWith("com.mixplorer")
+                || pkg.equals(getPackageName())) {
+              continue;
+            }
+            boolean exists = false;
+            for (FileManagerTarget t : targets) {
+              if (pkg.equals(t.packageName)) {
+                exists = true;
+                break;
+              }
+            }
+            if (!exists) {
+              CharSequence label = info.loadLabel(pm);
+              Drawable icon = info.loadIcon(pm);
+              targets.add(new FileManagerTarget(label, icon, pkg, () -> {
+                try {
+                  launchWithFileUriExposureAllowed(() -> {
+                    Intent launchIntent = new Intent(Intent.ACTION_VIEW);
+                    launchIntent.setClassName(info.activityInfo.packageName, info.activityInfo.name);
+                    launchIntent.setDataAndType(Uri.fromFile(folder), mime);
+                    launchIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(launchIntent);
+                  });
+                } catch (Throwable t) {
+                  Logger.getLOGGER().e(t, "Failed to launch generic FM: " + pkg);
+                }
+              }));
+            }
           }
         }
       }
     });
-    if (launched[0]) return;
 
-    // 6. Generic file manager probe via Content URI (FileProvider)
-    Uri contentUri = contentUriFor(folder);
-    if (contentUri != null) {
-      for (String mime : new String[]{"resource/folder", "inode/directory", "vnd.android.document/directory"}) {
-        Intent probeContent = new Intent(Intent.ACTION_VIEW);
-        probeContent.setDataAndType(contentUri, mime);
-        probeContent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        List<ResolveInfo> list = pm.queryIntentActivities(probeContent, PackageManager.MATCH_DEFAULT_ONLY);
-        if (list != null && !list.isEmpty()) {
-          try {
-            startActivity(list.size() == 1 ? probeContent : Intent.createChooser(probeContent, null));
-            return;
-          } catch (Throwable ignored) {
+    if (targets.isEmpty()) {
+      ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+      if (cb != null) {
+        cb.setPrimaryClip(ClipData.newPlainText("path", path));
+      }
+      Toast.makeText(this, getString(R.string.path_copied, path), Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    if (targets.size() == 1) {
+      targets.get(0).launch.run();
+      return;
+    }
+
+    // Multiple file managers installed -> Show Chooser Dialog
+    ListAdapter adapter = new ArrayAdapter<FileManagerTarget>(this,
+        android.R.layout.select_dialog_item, android.R.id.text1, targets) {
+      @NonNull
+      @Override
+      public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+        View v = super.getView(position, convertView, parent);
+        TextView tv = v.findViewById(android.R.id.text1);
+        FileManagerTarget item = getItem(position);
+        if (item != null && tv != null) {
+          tv.setText(item.name);
+          if (item.icon != null) {
+            int size = (int) (32 * getResources().getDisplayMetrics().density + 0.5f);
+            item.icon.setBounds(0, 0, size, size);
+            tv.setCompoundDrawables(item.icon, null, null, null);
+            tv.setCompoundDrawablePadding((int) (12 * getResources().getDisplayMetrics().density + 0.5f));
+            tv.setGravity(android.view.Gravity.CENTER_VERTICAL);
           }
         }
+        return v;
       }
-    }
+    };
 
-    // 7. Fallback: Copy path to clipboard and toast
-    ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-    if (cb != null) {
-      cb.setPrimaryClip(ClipData.newPlainText("path", path));
-    }
-    Toast.makeText(this, getString(R.string.path_copied, path), Toast.LENGTH_SHORT).show();
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.button_show_in_fm)
+        .setAdapter(adapter, (d, which) -> targets.get(which).launch.run())
+        .show();
   }
 
   private void openFolder(File file, String path, FileSystemEntry entry) {

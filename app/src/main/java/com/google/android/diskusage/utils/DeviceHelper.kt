@@ -1,5 +1,7 @@
 package com.google.android.diskusage.utils
 
+import android.content.pm.PackageManager
+import rikka.shizuku.Shizuku
 import java.io.File
 
 object DeviceHelper {
@@ -47,5 +49,28 @@ object DeviceHelper {
 
         isRootedCache = false
         return false
+    }
+
+    @JvmStatic
+    fun isShizukuGranted(): Boolean {
+        return try {
+            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
+    fun isShizukuRoot(): Boolean {
+        return try {
+            isShizukuGranted() && Shizuku.getUid() == 0
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
+    fun isElevated(): Boolean {
+        return isDeviceRooted() || isShizukuGranted()
     }
 }

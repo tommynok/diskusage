@@ -352,10 +352,7 @@ public class DiskUsage extends LoadableActivity {
       return;
     }
     File target = new File(path);
-    File folder = target.isDirectory() ? target : target.getParentFile();
-    if (folder == null) {
-      folder = target;
-    }
+    final File folder = (target.isDirectory() || target.getParentFile() == null) ? target : target.getParentFile();
 
     // 1. Total Commander (direct intent focusing on target file or folder)
     if (isPackageInstalled("com.ghisler.android.TotalCommander")) {

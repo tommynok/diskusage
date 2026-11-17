@@ -115,9 +115,13 @@ public class NativeScannerStream extends InputStream {
                  + "\"$TMP\" \"" + root + "\" || \"" + binaryPath + "\" \"" + root + "\"";
       try {
         Logger.getLOGGER().d("NativeScannerStream: executing via Shizuku: %s", cmd);
-        return rikka.shizuku.Shizuku.newProcess(new String[] { "sh", "-c", cmd }, null, null);
+        java.lang.reflect.Method m = rikka.shizuku.Shizuku.class.getDeclaredMethod(
+            "newProcess", String[].class, String[].class, String.class);
+        m.setAccessible(true);
+        return (Process) m.invoke(null, new String[] { "sh", "-c", cmd }, null, null);
       } catch (Throwable t) {
-        throw new IOException("Failed to execute via Shizuku: " + t.getMessage(), t);
+        Throwable cause = t.getCause() != null ? t.getCause() : t;
+        throw new IOException("Failed to execute via Shizuku: " + cause.getMessage(), cause);
       }
     }
 

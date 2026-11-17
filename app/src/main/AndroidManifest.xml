@@ -7,6 +7,8 @@
 
     <uses-sdk tools:overrideLibrary="moe.shizuku.provider, rikka.shizuku.aidl, rikka.shizuku.api, rikka.shizuku.provider, rikka.shizuku.shared, dev.rikka.shizuku.provider, dev.rikka.shizuku.api, dev.rikka.shizuku.aidl" />
 
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
+        tools:ignore="ProtectedPermissions"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -81,5 +83,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths"/>
         </provider>
-</application>
+
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL"
+            tools:ignore="ProtectedPermissions" />
+    </application>
 </manifest> 

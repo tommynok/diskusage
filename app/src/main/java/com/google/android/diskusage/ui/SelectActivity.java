@@ -24,7 +24,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import androidx.annotation.NonNull;
@@ -49,47 +48,6 @@ public class SelectActivity extends Activity {
   Map<String, Bundle> bundles = new TreeMap<>();
   ArrayList<Runnable> actionList = new ArrayList<>();
   private boolean expandRootMountPoints;
-
-  private static final int SHIZUKU_REQ_CODE = 4001;
-
-  private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
-      (requestCode, grantResult) -> {
-        if (requestCode == SHIZUKU_REQ_CODE) {
-          if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            String mode = "";
-            try {
-              int uid = rikka.shizuku.Shizuku.getUid();
-              mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-            } catch (Throwable ignored) {}
-            android.widget.Toast.makeText(this, getString(R.string.shizuku_permission_granted) + mode, android.widget.Toast.LENGTH_SHORT).show();
-            makeDialog();
-          }
-        }
-      };
-
-  public void requestShizukuAccess() {
-    try {
-      if (!rikka.shizuku.Shizuku.pingBinder()) {
-        android.widget.Toast.makeText(this, R.string.shizuku_not_running, android.widget.Toast.LENGTH_SHORT).show();
-        makeDialog();
-        return;
-      }
-      if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-        String mode = "";
-        try {
-          int uid = rikka.shizuku.Shizuku.getUid();
-          mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-        } catch (Throwable ignored) {}
-        android.widget.Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, android.widget.Toast.LENGTH_SHORT).show();
-        makeDialog();
-        return;
-      }
-      rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-    } catch (Throwable t) {
-      android.widget.Toast.makeText(this, R.string.shizuku_not_running, android.widget.Toast.LENGTH_SHORT).show();
-      makeDialog();
-    }
-  }
 
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, Class<?> viewer) {
@@ -180,9 +138,6 @@ public class SelectActivity extends Activity {
       }
     }
 
-    options.add(getString(R.string.menu_shizuku));
-    actionList.add(this::requestShizukuAccess);
-
     final String[] optionsArray = options.toArray(new String[0]);
 
     dialog = new AlertDialog.Builder(this)
@@ -217,9 +172,6 @@ public class SelectActivity extends Activity {
     FileSystemEntry.setupStrings(this);
     ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
-    try {
-      rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
-    } catch (Throwable ignored) {}
 //    ActionBar bar = getActionBar();
 //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
   }
@@ -238,14 +190,6 @@ public class SelectActivity extends Activity {
     if (dialog.isShowing()) dialog.dismiss();
     handler.removeCallbacks(checkForMountsUpdates);
     super.onPause();
-  }
-
-  @Override
-  protected void onDestroy() {
-    super.onDestroy();
-    try {
-      rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
-    } catch (Throwable ignored) {}
   }
 
   @Override

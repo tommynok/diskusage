@@ -38,6 +38,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
+import android.os.StrictMode;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
@@ -117,6 +118,8 @@ public class DiskUsage extends LoadableActivity {
       handler.postDelayed(this::showTipsDialog, 1000);
     }
     try {
+      rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener);
+      rikka.shizuku.Shizuku.addBinderDeadListener(shizukuBinderDeadListener);
       rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
     } catch (Throwable ignored) {}
     menu.onCreate();
@@ -321,6 +324,26 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
+  private boolean isPackageInstalled(String pkg) {
+    if (pkg == null) return false;
+    try {
+      getPackageManager().getPackageInfo(pkg, 0);
+      return true;
+    } catch (Throwable ignored) {
+      return false;
+    }
+  }
+
+  private void launchWithFileUriExposureAllowed(Runnable r) {
+    StrictMode.VmPolicy old = StrictMode.getVmPolicy();
+    try {
+      StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().build());
+      r.run();
+    } finally {
+      StrictMode.setVmPolicy(old);
+    }
+  }
+
   public void revealInFileManager(FileSystemEntry entry) {
     if (entry == null) return;
     String path = entry.absolutePath();
@@ -334,50 +357,113 @@ public class DiskUsage extends LoadableActivity {
       folder = target;
     }
 
-    // 1. Total Commander (supports explicit deep link with focus on target file or folder)
-    try {
-      Intent tcIntent = new Intent(Intent.ACTION_VIEW);
-      tcIntent.setClassName("com.ghisler.android.TotalCommander", "com.ghisler.android.TotalCommander.TotalCommander");
-      tcIntent.putExtra("ghisler_fileName", target.getAbsolutePath());
-      tcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      startActivity(tcIntent);
-      return;
-    } catch (ActivityNotFoundException | SecurityException ignored) {
+    // 1. Total Commander (direct intent focusing on target file or folder)
+    if (isPackageInstalled("com.ghisler.android.TotalCommander")) {
+      try {
+        Intent tcIntent = new Intent(Intent.ACTION_VIEW);
+        tcIntent.setClassName("com.ghisler.android.TotalCommander", "com.ghisler.android.TotalCommander.TotalCommander");
+        tcIntent.putExtra("ghisler_fileName", target.getAbsolutePath());
+        tcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(tcIntent);
+        return;
+      } catch (Throwable ignored) {
+      }
     }
 
-    // 2. Folder probe via content URI
+    // 2. Material Files (direct intent using file scheme and inode/directory)
+    if (isPackageInstalled("me.zhanghai.android.files")) {
+      try {
+        launchWithFileUriExposureAllowed(() -> {
+          Intent mfIntent = new Intent(Intent.ACTION_VIEW);
+          mfIntent.setPackage("me.zhanghai.android.files");
+          mfIntent.setDataAndType(Uri.fromFile(folder), "inode/directory");
+          mfIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+          mfIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          startActivity(mfIntent);
+        });
+        return;
+      } catch (Throwable ignored) {
+      }
+    }
+
+    // 3. Solid Explorer (direct intent using resource/folder and ABSOLUTE_PATH)
+    String solidPkg = isPackageInstalled("pl.solidexplorer2") ? "pl.solidexplorer2"
+        : (isPackageInstalled("pl.solidexplorer") ? "pl.solidexplorer" : null);
+    if (solidPkg != null) {
+      try {
+        launchWithFileUriExposureAllowed(() -> {
+          Intent seIntent = new Intent(Intent.ACTION_VIEW);
+          seIntent.setPackage(solidPkg);
+          seIntent.setDataAndType(Uri.fromFile(folder), "resource/folder");
+          seIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+          seIntent.putExtra("path", folder.getAbsolutePath());
+          seIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          startActivity(seIntent);
+        });
+        return;
+      } catch (Throwable ignored) {
+      }
+    }
+
+    // 4. MiXplorer (direct intent using resource/folder and ABSOLUTE_PATH)
+    for (String mixPkg : new String[]{"com.mixplorer", "com.mixplorer.silver", "com.mixplorer.beta"}) {
+      if (isPackageInstalled(mixPkg)) {
+        try {
+          launchWithFileUriExposureAllowed(() -> {
+            Intent mixIntent = new Intent(Intent.ACTION_VIEW);
+            mixIntent.setPackage(mixPkg);
+            mixIntent.setDataAndType(Uri.fromFile(folder), "resource/folder");
+            mixIntent.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+            mixIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(mixIntent);
+          });
+          return;
+        } catch (Throwable ignored) {
+        }
+      }
+    }
+
+    // 5. Generic file manager probe via Intent Chooser (using file scheme)
+    PackageManager pm = getPackageManager();
+    final boolean[] launched = new boolean[]{false};
+    launchWithFileUriExposureAllowed(() -> {
+      for (String mime : new String[]{"resource/folder", "inode/directory", "vnd.android.document/directory"}) {
+        Intent probe = new Intent(Intent.ACTION_VIEW);
+        probe.setDataAndType(Uri.fromFile(folder), mime);
+        probe.putExtra("org.openintents.extra.ABSOLUTE_PATH", folder.getAbsolutePath());
+        probe.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        List<ResolveInfo> list = pm.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY);
+        if (list != null && !list.isEmpty()) {
+          try {
+            startActivity(list.size() == 1 ? probe : Intent.createChooser(probe, null));
+            launched[0] = true;
+            return;
+          } catch (Throwable ignored) {
+          }
+        }
+      }
+    });
+    if (launched[0]) return;
+
+    // 6. Generic file manager probe via Content URI (FileProvider)
     Uri contentUri = contentUriFor(folder);
     if (contentUri != null) {
-      PackageManager pm = getPackageManager();
-
-      // Probe Material Files & standard Linux directory viewers (inode/directory)
-      Intent probeInode = new Intent(Intent.ACTION_VIEW);
-      probeInode.setDataAndType(contentUri, "inode/directory");
-      probeInode.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-      List<ResolveInfo> inodeRs = pm.queryIntentActivities(probeInode, PackageManager.MATCH_DEFAULT_ONLY);
-      if (inodeRs != null && !inodeRs.isEmpty()) {
-        try {
-          startActivity(inodeRs.size() == 1 ? probeInode : Intent.createChooser(probeInode, null));
-          return;
-        } catch (ActivityNotFoundException | SecurityException ignored) {
-        }
-      }
-
-      // Probe Solid Explorer / MiXplorer (resource/folder)
-      Intent probeTc = new Intent(Intent.ACTION_VIEW);
-      probeTc.setDataAndType(contentUri, "resource/folder");
-      probeTc.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-      List<ResolveInfo> rs = pm.queryIntentActivities(probeTc, PackageManager.MATCH_DEFAULT_ONLY);
-      if (rs != null && !rs.isEmpty()) {
-        try {
-          startActivity(rs.size() == 1 ? probeTc : Intent.createChooser(probeTc, null));
-          return;
-        } catch (ActivityNotFoundException | SecurityException ignored) {
+      for (String mime : new String[]{"resource/folder", "inode/directory", "vnd.android.document/directory"}) {
+        Intent probeContent = new Intent(Intent.ACTION_VIEW);
+        probeContent.setDataAndType(contentUri, mime);
+        probeContent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        List<ResolveInfo> list = pm.queryIntentActivities(probeContent, PackageManager.MATCH_DEFAULT_ONLY);
+        if (list != null && !list.isEmpty()) {
+          try {
+            startActivity(list.size() == 1 ? probeContent : Intent.createChooser(probeContent, null));
+            return;
+          } catch (Throwable ignored) {
+          }
         }
       }
     }
 
-    // 3. Fallback: Copy path to clipboard and toast
+    // 7. Fallback: Copy path to clipboard and toast
     ClipboardManager cb = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
     if (cb != null) {
       cb.setPrimaryClip(ClipData.newPlainText("path", path));
@@ -542,6 +628,14 @@ public class DiskUsage extends LoadableActivity {
 
   private static final int SHIZUKU_REQ_CODE = 4001;
 
+  private final rikka.shizuku.Shizuku.OnBinderReceivedListener shizukuBinderReceivedListener = () -> {
+    Logger.getLOGGER().d("Shizuku binder received");
+  };
+
+  private final rikka.shizuku.Shizuku.OnBinderDeadListener shizukuBinderDeadListener = () -> {
+    Logger.getLOGGER().d("Shizuku binder dead");
+  };
+
   private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
       (requestCode, grantResult) -> {
         if (requestCode == SHIZUKU_REQ_CODE) {
@@ -560,6 +654,8 @@ public class DiskUsage extends LoadableActivity {
   protected void onDestroy() {
     super.onDestroy();
     try {
+      rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
+      rikka.shizuku.Shizuku.removeBinderDeadListener(shizukuBinderDeadListener);
       rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
     } catch (Throwable ignored) {}
   }

@@ -25,18 +25,21 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
+        if (getActionBar() != null) {
+            getActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         addPreferencesFromResource(R.xml.mount_points_ignore_list);
         getPreferenceScreen().setOrderingAsAdded(true);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, MENU_DESELECT_ALL, 0, R.string.action_deselect_all)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
-        menu.add(0, MENU_SELECT_ALL, 1, R.string.action_select_all)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+        menu.add(0, MENU_SELECT_ALL, 0, R.string.action_select_all)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(0, MENU_DESELECT_ALL, 1, R.string.action_deselect_all)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
         menu.add(0, MENU_ESSENTIAL_ONLY, 2, R.string.action_essential_only)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
 
         SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
         boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
@@ -48,6 +51,10 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
         PreferenceScreen prefs = getPreferenceScreen();
         int count = prefs.getPreferenceCount();
 

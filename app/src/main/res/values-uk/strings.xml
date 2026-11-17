@@ -128,11 +128,11 @@
     <string name="shizuku_permission_granted">Доступ до Shizuku надано</string>
     <string name="shizuku_permission_already_granted">Доступ до Shizuku вже надано</string>
     <string name="tip_bottom_sheet_title">Панель властивостей</string>
-    <string name="tip_bottom_sheet_desc">Натисніть на заголовок угорі або повторно торкніться файлу, щоб відкрити відомості та дії.</string>
+    <string name="tip_bottom_sheet_desc">Натисніть на заголовок угорі, утримуйте будь-який елемент або повторно торкніться файлу, щоб відкрити відомості та дії.</string>
     <string name="tip_copy_path_title">Швидке копіювання</string>
     <string name="tip_copy_path_desc">Утримуйте заголовок, щоб скопіювати повний шлях до вибраного елемента.</string>
     <string name="tip_file_manager_title">Перехід у провідник</string>
-    <string name="tip_file_manager_desc">Перегляд файлу або папки в Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
+    <string name="tip_file_manager_desc">Натисніть значок папки на верхній панелі для швидкого переходу до вибраного елемента в Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
     <string name="tip_safe_delete_title">Безпечне видалення</string>
     <string name="tip_safe_delete_desc">Видалення з панелі властивостей із підтвердженням, захистом і блокуванням при пошуку.</string>
     <string name="tip_storage_title">Зовнішні накопичувачі</string>

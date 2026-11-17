@@ -128,11 +128,11 @@
     <string name="shizuku_permission_granted">Shizuku access granted</string>
     <string name="shizuku_permission_already_granted">Shizuku access is already granted</string>
     <string name="tip_bottom_sheet_title">Properties Panel</string>
-    <string name="tip_bottom_sheet_desc">Tap the toolbar title or re-tap a file to open full details and actions.</string>
+    <string name="tip_bottom_sheet_desc">Tap the toolbar title, long-press any item, or re-tap a file to open details and actions.</string>
     <string name="tip_copy_path_title">Quick Path Copy</string>
     <string name="tip_copy_path_desc">Hold the toolbar title to copy the path of the selected item.</string>
     <string name="tip_file_manager_title">Open in File Manager</string>
-    <string name="tip_file_manager_desc">Reveal file or folder in Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
+    <string name="tip_file_manager_desc">Tap the folder icon in the top toolbar to reveal the selected item in Material Files, Total Commander, Solid Explorer, MiXplorer.</string>
     <string name="tip_safe_delete_title">Safe Deletion</string>
     <string name="tip_safe_delete_desc">Deletion from properties panel with confirmation, app protection, and search safety.</string>
     <string name="tip_storage_title">External Storage</string>

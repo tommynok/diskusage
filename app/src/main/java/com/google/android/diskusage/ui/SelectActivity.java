@@ -239,12 +239,12 @@ public class SelectActivity extends Activity {
     if (binding == null) return;
     PopupMenu popup = new PopupMenu(this, binding.btnOverflow);
     Menu m = popup.getMenu();
-    m.add(0, 1, 0, R.string.menu_shizuku);
-    m.add(0, 2, 0, R.string.menu_tips);
-    m.add(0, 3, 0, R.string.action_about);
     if (DeviceHelper.isElevated()) {
       m.add(0, 4, 0, R.string.setup_visible_mount_points);
     }
+    m.add(0, 1, 0, R.string.menu_shizuku);
+    m.add(0, 2, 0, R.string.menu_tips);
+    m.add(0, 3, 0, R.string.action_about);
 
     popup.setOnMenuItemClickListener(item -> {
       switch (item.getItemId()) {

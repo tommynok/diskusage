@@ -447,6 +447,24 @@ public class FileSystemState {
     public float getY(int i) { return yy[i]; }
   }
 
+  private boolean longPressTriggered = false;
+  private final Runnable longPressRunnable = new Runnable() {
+    @Override
+    public void run() {
+      if (screenTouching && !touchMovement && touchEntry != null && !(touchEntry instanceof FileSystemSpecial)) {
+        longPressTriggered = true;
+        mainThreadAction.context.runOnUiThread(() -> {
+          try {
+            if (view instanceof android.view.View) {
+              ((android.view.View) view).performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            }
+          } catch (Throwable ignored) {}
+          mainThreadAction.showDetails(touchEntry);
+        });
+      }
+    }
+  };
+
   public final boolean onTouchEvent(MyMotionEvent ev) {
     try { // finally requestRepaintGPU()
     if (sdcardIsEmpty())
@@ -458,8 +476,12 @@ public class FileSystemState {
       return true;
     }
 
-    if (multitouchHandler.handleTouch(ev))
+    if (multitouchHandler.handleTouch(ev)) {
+      if (mainThreadAction != null && mainThreadAction.context != null && mainThreadAction.context.handler != null) {
+        mainThreadAction.context.handler.removeCallbacks(longPressRunnable);
+      }
       return true;
+    }
 
     float newTouchX = ev.getX();
     float newTouchY = ev.getY();
@@ -467,6 +489,9 @@ public class FileSystemState {
     int action = ev.getAction();
 
     if (multiNumTouches > 1) {
+      if (mainThreadAction != null && mainThreadAction.context != null && mainThreadAction.context.handler != null) {
+        mainThreadAction.context.handler.removeCallbacks(longPressRunnable);
+      }
       if (action == MotionEvent.ACTION_UP) {
         multiNumTouches = 0;
         screenTouching = false;
@@ -494,16 +519,38 @@ public class FileSystemState {
       speedX = 0;
       speedY = 0;
       prevMoveTime = ev.getEventTime();
+      longPressTriggered = false;
+      if (mainThreadAction != null && mainThreadAction.context != null && mainThreadAction.context.handler != null) {
+        mainThreadAction.context.handler.removeCallbacks(longPressRunnable);
+        if (touchEntry != null && !(touchEntry instanceof FileSystemSpecial)) {
+          mainThreadAction.context.handler.postDelayed(longPressRunnable, 450);
+        }
+      }
     } else if (action == MotionEvent.ACTION_MOVE) {
       long moveTime = ev.getEventTime();
       newTouchX = filterX.doFilter(newTouchX);
       newTouchY = filterY.doFilter(newTouchY);
+      float dx = Math.abs(newTouchX - touchX);
+      float dy = Math.abs(newTouchY - touchY);
+      if (dx > 12 || dy > 12) {
+        if (mainThreadAction != null && mainThreadAction.context != null && mainThreadAction.context.handler != null) {
+          mainThreadAction.context.handler.removeCallbacks(longPressRunnable);
+        }
+      }
       onMotion(newTouchX, newTouchY, moveTime);
       return true;
     } else if (action == MotionEvent.ACTION_UP) {
       screenTouching = false;
       newTouchX = filterX.doFilter(newTouchX);
       newTouchY = filterY.doFilter(newTouchY);
+      if (mainThreadAction != null && mainThreadAction.context != null && mainThreadAction.context.handler != null) {
+        mainThreadAction.context.handler.removeCallbacks(longPressRunnable);
+      }
+      if (longPressTriggered) {
+        longPressTriggered = false;
+        touchMovement = false;
+        return true;
+      }
       // This prevents first touch after pinch-zoom, removed
       //      if (multiNumTouches != 1) return true;
 

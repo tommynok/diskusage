@@ -672,6 +672,21 @@ public class DiskUsage extends LoadableActivity {
       return false;
     });
 
+    tb.btnOpenFm.setOnClickListener(v -> {
+      FileSystemEntry target = currentSelectedEntity;
+      if (target == null && fileSystemState != null) {
+        target = fileSystemState.masterRoot;
+      }
+      if (target != null) {
+        revealInFileManager(target);
+      }
+    });
+
+    tb.btnOpenFm.setOnLongClickListener(v -> {
+      Toast.makeText(DiskUsage.this, R.string.button_show_in_fm, Toast.LENGTH_SHORT).show();
+      return true;
+    });
+
     tb.btnSearch.setOnClickListener(v -> openSearch());
 
     tb.btnOverflow.setOnClickListener(v -> showOverflowMenu());

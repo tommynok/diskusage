@@ -81,6 +81,14 @@ public class NativeScanner implements ProgressGenerator {
   private InputStream is;
   private final Context context;
 
+  public void abort() {
+    try {
+      if (is != null) {
+        is.close();
+      }
+    } catch (Throwable ignored) {}
+  }
+
   private static final int bufsize = 65536;
   private int offset = 0;
   private int allocated = 0;

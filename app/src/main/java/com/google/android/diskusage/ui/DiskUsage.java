@@ -756,9 +756,20 @@ public class DiskUsage extends LoadableActivity {
         }
       };
 
+  private volatile NativeScanner activeScanner;
+
+  public void abortScan() {
+    NativeScanner scanner = this.activeScanner;
+    if (scanner != null) {
+      scanner.abort();
+      this.activeScanner = null;
+    }
+  }
+
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    abortScan();
     try {
       rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.removeBinderDeadListener(shizukuBinderDeadListener);
@@ -1203,11 +1214,14 @@ public class DiskUsage extends LoadableActivity {
     Runnable progressUpdater;
     try {
       final NativeScanner scanner = new NativeScanner(this, stats.blockSize, stats.busyBlocks, heap);
+      this.activeScanner = scanner;
       progressUpdater = makeProgressUpdater(scanner, stats);
       handler.post(progressUpdater);
       rootElement = scanner.scan(mountPoint);
       handler.removeCallbacks(progressUpdater);
+      this.activeScanner = null;
     } catch (RuntimeException e) {
+      this.activeScanner = null;
       Logger.getLOGGER().e("DiskUsage: Native scanner failed, falling back to Java scanner", e);
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(scanner, stats);

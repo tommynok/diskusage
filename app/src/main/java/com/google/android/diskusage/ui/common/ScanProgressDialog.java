@@ -44,6 +44,7 @@ public class ScanProgressDialog extends AlertDialog {
 
   public ScanProgressDialog(Context context) {
     super(context);
+    setButton(BUTTON_NEGATIVE, context.getString(android.R.string.cancel), (dialog, which) -> cancel());
   }
 
   public void setMax(long max) {

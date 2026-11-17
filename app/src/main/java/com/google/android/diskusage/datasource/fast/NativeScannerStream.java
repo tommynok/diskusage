@@ -54,12 +54,19 @@ public class NativeScannerStream extends InputStream {
 
   @Override
   public void close() throws IOException {
-    is.close();
     try {
-      process.waitFor();
-    } catch (InterruptedException e) {
-      throw new IOException(e.getMessage());
-    }
+      if (process != null) {
+        process.destroy();
+      }
+    } catch (Throwable ignored) {}
+    try {
+      is.close();
+    } catch (Throwable ignored) {}
+    try {
+      if (process != null) {
+        process.waitFor();
+      }
+    } catch (Throwable ignored) {}
   }
 
   public static class Factory {

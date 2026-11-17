@@ -108,6 +108,9 @@ public abstract class LoadableActivity extends Activity {
     final ScanProgressDialog thisLoading = state.loading;
     state.loading.setOnCancelListener(dialog -> {
       state.loading = null;
+      if (activity instanceof DiskUsage) {
+        ((DiskUsage) activity).abortScan();
+      }
       activity.finish();
     });
     thisLoading.setCancelable(true);

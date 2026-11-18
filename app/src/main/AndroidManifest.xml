@@ -75,7 +75,8 @@
     </activity>
     <activity android:name=".ui.PermissionRequestActivity"/>
     <activity android:name=".ui.DeleteActivity"/>
-    <activity android:name=".ui.ShowHideMountPointsActivity"/>
+    <activity android:name=".ui.ShowHideMountPointsActivity"
+        android:theme="@style/Theme.NoBackground"/>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

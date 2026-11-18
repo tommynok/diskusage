@@ -24,12 +24,72 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_show_hide_mount_points);
         com.google.android.diskusage.utils.UiHelper.setupLightStatusBar(this);
-        if (getActionBar() != null) {
-            getActionBar().setDisplayHomeAsUpEnabled(true);
+
+        View btnBack = findViewById(R.id.btn_back);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
         }
+
+        View btnOverflow = findViewById(R.id.btn_overflow);
+        if (btnOverflow != null) {
+            btnOverflow.setOnClickListener(this::showOverflowMenu);
+        }
+
         addPreferencesFromResource(R.xml.mount_points_ignore_list);
         getPreferenceScreen().setOrderingAsAdded(true);
+    }
+
+    private void showOverflowMenu(View anchor) {
+        android.widget.PopupMenu popup = new android.widget.PopupMenu(this, anchor);
+        popup.getMenu().add(0, MENU_SELECT_ALL, 0, R.string.action_select_all);
+        popup.getMenu().add(0, MENU_DESELECT_ALL, 1, R.string.action_deselect_all);
+        popup.getMenu().add(0, MENU_ESSENTIAL_ONLY, 2, R.string.action_essential_only);
+
+        SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+        boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
+        popup.getMenu().add(0, MENU_TOGGLE_UNFILTERED, 3,
+            showUnfiltered ? R.string.action_hide_unfiltered : R.string.action_show_unfiltered);
+
+        popup.setOnMenuItemClickListener(item -> handleMenuAction(item.getItemId()));
+        popup.show();
+    }
+
+    private boolean handleMenuAction(int itemId) {
+        PreferenceScreen prefs = getPreferenceScreen();
+        int count = prefs.getPreferenceCount();
+
+        if (itemId == MENU_DESELECT_ALL) {
+            for (int i = 0; i < count; i++) {
+                ((CheckBoxPreference) prefs.getPreference(i)).setChecked(false);
+            }
+            savePreferences();
+            return true;
+        } else if (itemId == MENU_SELECT_ALL) {
+            for (int i = 0; i < count; i++) {
+                ((CheckBoxPreference) prefs.getPreference(i)).setChecked(true);
+            }
+            savePreferences();
+            return true;
+        } else if (itemId == MENU_ESSENTIAL_ONLY) {
+            for (int i = 0; i < count; i++) {
+                CheckBoxPreference pref = (CheckBoxPreference) prefs.getPreference(i);
+                String path = pref.getTitle().toString();
+                pref.setChecked(RootMountPoint.isDefaultVisible(path));
+            }
+            savePreferences();
+            return true;
+        } else if (itemId == MENU_TOGGLE_UNFILTERED) {
+            savePreferences();
+            SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+            boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
+            shprefs.edit().putBoolean("show_unfiltered", !showUnfiltered).apply();
+            invalidateOptionsMenu();
+            onResume();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -55,36 +115,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
             finish();
             return true;
         }
-        PreferenceScreen prefs = getPreferenceScreen();
-        int count = prefs.getPreferenceCount();
-
-        if (item.getItemId() == MENU_DESELECT_ALL) {
-            for (int i = 0; i < count; i++) {
-                ((CheckBoxPreference) prefs.getPreference(i)).setChecked(false);
-            }
-            savePreferences();
-            return true;
-        } else if (item.getItemId() == MENU_SELECT_ALL) {
-            for (int i = 0; i < count; i++) {
-                ((CheckBoxPreference) prefs.getPreference(i)).setChecked(true);
-            }
-            savePreferences();
-            return true;
-        } else if (item.getItemId() == MENU_ESSENTIAL_ONLY) {
-            for (int i = 0; i < count; i++) {
-                CheckBoxPreference pref = (CheckBoxPreference) prefs.getPreference(i);
-                String path = pref.getTitle().toString();
-                pref.setChecked(RootMountPoint.isDefaultVisible(path));
-            }
-            savePreferences();
-            return true;
-        } else if (item.getItemId() == MENU_TOGGLE_UNFILTERED) {
-            savePreferences();
-            SharedPreferences shprefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-            boolean showUnfiltered = shprefs.getBoolean("show_unfiltered", false);
-            shprefs.edit().putBoolean("show_unfiltered", !showUnfiltered).apply();
-            invalidateOptionsMenu();
-            onResume();
+        if (handleMenuAction(item.getItemId())) {
             return true;
         }
         return super.onOptionsItemSelected(item);

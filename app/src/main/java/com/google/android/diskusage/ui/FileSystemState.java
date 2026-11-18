@@ -884,8 +884,7 @@ public class FileSystemState {
     if (!has_children) {
 //      Log.d("diskusage", "zoom file");
       fullZoom = false;
-      if (targetViewTop == prevViewTop
-          && targetViewBottom == prevViewBottom) {
+      if (prevCursor == entry) {
         if (!(entry instanceof FileSystemSpecial)) {
           mainThreadAction.showDetails(entry);
         }

@@ -70,6 +70,26 @@ object DeviceHelper {
     }
 
     @JvmStatic
+    fun isPorterInstalled(context: android.content.Context): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("eu.darken.porter", 0)
+            true
+        } catch (e: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
+    fun isShizukuInstalled(context: android.content.Context): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
+            true
+        } catch (e: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
     fun isElevated(): Boolean {
         return isDeviceRooted() || isShizukuGranted()
     }

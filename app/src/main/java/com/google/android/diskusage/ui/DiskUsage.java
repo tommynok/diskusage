@@ -795,6 +795,16 @@ public class DiskUsage extends LoadableActivity {
   public void requestShizukuAccess() {
     try {
       if (!rikka.shizuku.Shizuku.pingBinder()) {
+        Intent launchIntent = null;
+        if (com.google.android.diskusage.utils.DeviceHelper.isPorterInstalled(this)) {
+          launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
+        }
+        if (launchIntent == null && com.google.android.diskusage.utils.DeviceHelper.isShizukuInstalled(this)) {
+          launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
+        }
+        if (launchIntent != null) {
+          startActivity(launchIntent);
+        }
         Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
         return;
       }

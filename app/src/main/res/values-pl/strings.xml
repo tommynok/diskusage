@@ -98,8 +98,11 @@
     <string name="action_about">Informacje</string>
     <string name="option_show_hide">[Pokaż/ukryj]</string>
     <string name="setup_visible_mount_points">Ustawienia widocznych partycji</string>
-    <string name="option_root_required">[Wymagane uprawnienia rozszerzone]</string>
+    <string name="option_root_required">[Dostęp rozszerzony]</string>
     <string name="elevated_access_providers">Root, Shizuku lub Porter</string>
+    <string name="root_permission_granted">Przyznano dostęp Root</string>
+    <string name="launch_service_hint">Uruchom usługę w Shizuku lub Porter</string>
+    <string name="elevation_not_available">Wymagane uprawnienia Root lub uruchomiony Shizuku / Porter</string>
     <string name="button_show_in_fm">W menedżerze plików</string>
     <string name="menu_tips">Pomoc</string>
     <string name="tips_dialog_title">Pomoc</string>

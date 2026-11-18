@@ -64,7 +64,6 @@ public class SelectActivity extends Activity {
 
   private ActivitySelectBinding binding;
   Map<String, Bundle> bundles = new TreeMap<>();
-  private boolean expandRootMountPoints;
 
   private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
       (requestCode, grantResult) -> {
@@ -178,7 +177,7 @@ public class SelectActivity extends Activity {
     }
 
     // 2. Root Mount Points
-    boolean showRootMounts = DeviceHelper.isElevated() || expandRootMountPoints;
+    boolean showRootMounts = DeviceHelper.isElevated();
     if (showRootMounts) {
       SharedPreferences prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
@@ -192,20 +191,7 @@ public class SelectActivity extends Activity {
     } else {
       items.add(new StorageItem(getString(R.string.option_root_required),
           getString(R.string.elevated_access_providers),
-          R.drawable.ic_drive_shield, () -> {
-        try {
-          if (rikka.shizuku.Shizuku.pingBinder()) {
-            if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-              updateStorageList();
-              return;
-            }
-            rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-            return;
-          }
-        } catch (Throwable ignored) {}
-        expandRootMountPoints = true;
-        updateStorageList();
-      }));
+          R.drawable.ic_drive_shield, this::requestElevatedAccess));
     }
 
     ArrayAdapter<StorageItem> adapter = new ArrayAdapter<StorageItem>(this, 0, items) {
@@ -266,35 +252,54 @@ public class SelectActivity extends Activity {
     popup.show();
   }
 
-  public void requestShizukuAccess() {
+  public void requestElevatedAccess() {
+    // 1. If Shizuku / Porter binder is alive, request through Shizuku / Porter
     try {
-      if (!rikka.shizuku.Shizuku.pingBinder()) {
-        Intent launchIntent = null;
-        if (DeviceHelper.isPorterInstalled(this)) {
-          launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
+      if (rikka.shizuku.Shizuku.pingBinder()) {
+        if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+          String mode = "";
+          try {
+            int uid = rikka.shizuku.Shizuku.getUid();
+            mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
+          } catch (Throwable ignored) {}
+          Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
+          updateStorageList();
+          return;
         }
-        if (launchIntent == null && DeviceHelper.isShizukuInstalled(this)) {
-          launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
-        }
-        if (launchIntent != null) {
-          startActivity(launchIntent);
-        }
-        Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
+        rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
         return;
       }
-      if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-        String mode = "";
-        try {
-          int uid = rikka.shizuku.Shizuku.getUid();
-          mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-        } catch (Throwable ignored) {}
-        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-        return;
-      }
-      rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-    } catch (Throwable t) {
-      Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
-    }
+    } catch (Throwable ignored) {}
+
+    // 2. Try requesting Superuser / Root rights
+    new Thread(() -> {
+      boolean rootGranted = DeviceHelper.requestRoot();
+      runOnUiThread(() -> {
+        if (rootGranted) {
+          Toast.makeText(SelectActivity.this, R.string.root_permission_granted, Toast.LENGTH_SHORT).show();
+          updateStorageList();
+        } else {
+          // 3. If no root and no running Shizuku / Porter:
+          Intent launchIntent = null;
+          if (DeviceHelper.isPorterInstalled(SelectActivity.this)) {
+            launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
+          } else if (DeviceHelper.isShizukuInstalled(SelectActivity.this)) {
+            launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
+          }
+
+          if (launchIntent != null) {
+            startActivity(launchIntent);
+            Toast.makeText(SelectActivity.this, R.string.launch_service_hint, Toast.LENGTH_LONG).show();
+          } else {
+            Toast.makeText(SelectActivity.this, R.string.elevation_not_available, Toast.LENGTH_LONG).show();
+          }
+        }
+      });
+    }).start();
+  }
+
+  public void requestShizukuAccess() {
+    requestElevatedAccess();
   }
 
   public void showTipsDialog() {

@@ -794,33 +794,42 @@ public class DiskUsage extends LoadableActivity {
 
   public void requestShizukuAccess() {
     try {
-      if (!rikka.shizuku.Shizuku.pingBinder()) {
-        Intent launchIntent = null;
-        if (com.google.android.diskusage.utils.DeviceHelper.isPorterInstalled(this)) {
-          launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
+      if (rikka.shizuku.Shizuku.pingBinder()) {
+        if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+          String mode = "";
+          try {
+            int uid = rikka.shizuku.Shizuku.getUid();
+            mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
+          } catch (Throwable ignored) {}
+          Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
+          return;
         }
-        if (launchIntent == null && com.google.android.diskusage.utils.DeviceHelper.isShizukuInstalled(this)) {
-          launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
-        }
-        if (launchIntent != null) {
-          startActivity(launchIntent);
-        }
-        Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
+        rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
         return;
       }
-      if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-        String mode = "";
-        try {
-          int uid = rikka.shizuku.Shizuku.getUid();
-          mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-        } catch (Throwable ignored) {}
-        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-        return;
-      }
-      rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-    } catch (Throwable t) {
-      Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_SHORT).show();
-    }
+    } catch (Throwable ignored) {}
+
+    new Thread(() -> {
+      boolean rootGranted = com.google.android.diskusage.utils.DeviceHelper.requestRoot();
+      runOnUiThread(() -> {
+        if (rootGranted) {
+          Toast.makeText(DiskUsage.this, R.string.root_permission_granted, Toast.LENGTH_SHORT).show();
+        } else {
+          Intent launchIntent = null;
+          if (com.google.android.diskusage.utils.DeviceHelper.isPorterInstalled(DiskUsage.this)) {
+            launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
+          } else if (com.google.android.diskusage.utils.DeviceHelper.isShizukuInstalled(DiskUsage.this)) {
+            launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
+          }
+          if (launchIntent != null) {
+            startActivity(launchIntent);
+            Toast.makeText(DiskUsage.this, R.string.launch_service_hint, Toast.LENGTH_LONG).show();
+          } else {
+            Toast.makeText(DiskUsage.this, R.string.elevation_not_available, Toast.LENGTH_LONG).show();
+          }
+        }
+      });
+    }).start();
   }
 
   private void showOverflowMenu() {

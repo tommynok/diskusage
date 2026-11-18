@@ -1,5 +1,6 @@
 package com.google.android.diskusage.utils
 
+import android.content.Context
 import android.content.pm.PackageManager
 import rikka.shizuku.Shizuku
 import java.io.File
@@ -8,6 +9,31 @@ object DeviceHelper {
 
     @Volatile
     private var isRootedCache: Boolean? = null
+
+    @JvmStatic
+    fun setDeviceRooted(rooted: Boolean) {
+        isRootedCache = rooted
+    }
+
+    @JvmStatic
+    fun clearRootCache() {
+        isRootedCache = null
+    }
+
+    @JvmStatic
+    fun requestRoot(): Boolean {
+        for (cmd in arrayOf("su", "/system/bin/su", "/system/xbin/su")) {
+            try {
+                val p = Runtime.getRuntime().exec(arrayOf(cmd, "-c", "id"))
+                val exitCode = p.waitFor()
+                if (exitCode == 0) {
+                    isRootedCache = true
+                    return true
+                }
+            } catch (ignored: Throwable) {}
+        }
+        return false
+    }
 
     @JvmStatic
     fun isDeviceRooted(): Boolean {
@@ -47,7 +73,7 @@ object DeviceHelper {
             }
         } catch (ignored: Throwable) {}
 
-        isRootedCache = false
+        // Do not cache false permanently so su can be attempted on demand
         return false
     }
 
@@ -70,7 +96,7 @@ object DeviceHelper {
     }
 
     @JvmStatic
-    fun isPorterInstalled(context: android.content.Context): Boolean {
+    fun isPorterInstalled(context: Context): Boolean {
         return try {
             context.packageManager.getPackageInfo("eu.darken.porter", 0)
             true
@@ -80,7 +106,7 @@ object DeviceHelper {
     }
 
     @JvmStatic
-    fun isShizukuInstalled(context: android.content.Context): Boolean {
+    fun isShizukuInstalled(context: Context): Boolean {
         return try {
             context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
             true

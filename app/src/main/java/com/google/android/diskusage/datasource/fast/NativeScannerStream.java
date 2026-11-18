@@ -106,9 +106,16 @@ public class NativeScannerStream extends InputStream {
 
       if (process == null) {
         if (rootRequired) {
+          try {
+            process = runWithSu(binaryPath, root);
+          } catch (IOException ignored) {}
+        }
+        if (process == null && rootRequired) {
           throw new IOException("Failed to obtain elevated process (su or Shizuku) to scan " + root);
         }
-        process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
+        if (process == null) {
+          process = Runtime.getRuntime().exec(new String[] { binaryPath, root });
+        }
       }
 
       InputStream is = process.getInputStream();

@@ -98,8 +98,11 @@
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
     <string name="action_about">About</string>
     <string name="option_show_hide">[Show/hide]</string>
-    <string name="option_root_required">[Elevated permissions required]</string>
+    <string name="option_root_required">[Elevated access]</string>
     <string name="elevated_access_providers">Root, Shizuku, or Porter</string>
+    <string name="root_permission_granted">Root access granted</string>
+    <string name="launch_service_hint">Start the service in Shizuku or Porter</string>
+    <string name="elevation_not_available">Root rights or running Shizuku / Porter required</string>
     <string name="setup_visible_mount_points">Setup visible mount points</string>
     <string name="mount_point_usage">Used %1$s of %2$s</string>
     <string name="mount_point_no_info">Used &lt;no information&gt;</string>

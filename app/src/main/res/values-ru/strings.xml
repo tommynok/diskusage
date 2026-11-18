@@ -88,8 +88,11 @@
     <string name="about_view_source_code"><![CDATA[Исходный код: %s]]></string>
     <string name="action_about">О программе</string>
     <string name="option_show_hide">[Показать/скрыть]</string>
-    <string name="option_root_required">[Требуются расширенные права доступа]</string>
+    <string name="option_root_required">[Расширенный доступ]</string>
     <string name="elevated_access_providers">Root, Shizuku или Porter</string>
+    <string name="root_permission_granted">Root-доступ предоставлен</string>
+    <string name="launch_service_hint">Запустите службу в Shizuku или Porter</string>
+    <string name="elevation_not_available">Требуются Root-права или запущенный Shizuku / Porter</string>
     <string name="setup_visible_mount_points">Настройка видимых разделов</string>
     <string-array name="select_apps">
         <item>На устройстве.</item>

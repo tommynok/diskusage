@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import androidx.annotation.NonNull;
+import com.google.android.diskusage.porter.PorterClient;
 import com.google.android.diskusage.utils.AppHelper;
 import com.google.android.diskusage.utils.DeviceHelper;
 import com.google.android.diskusage.utils.Logger;
@@ -86,6 +87,7 @@ public class NativeScannerStream extends InputStream {
       Process process = null;
 
       boolean useDirectSu = DeviceHelper.isDeviceRooted();
+      boolean usePorter = DeviceHelper.isPorterGranted();
       boolean useShizuku = DeviceHelper.isShizukuGranted();
 
       if (useDirectSu) {
@@ -93,6 +95,14 @@ public class NativeScannerStream extends InputStream {
           process = runWithSu(binaryPath, root);
         } catch (IOException e) {
           Logger.getLOGGER().e("NativeScannerStream: direct su failed: %s", e.getMessage());
+        }
+      }
+
+      if (process == null && usePorter) {
+        try {
+          process = PorterClient.runScannerProcess(binaryPath, root);
+        } catch (IOException e) {
+          Logger.getLOGGER().e("NativeScannerStream: Porter execution failed: %s", e.getMessage());
         }
       }
 
@@ -111,7 +121,7 @@ public class NativeScannerStream extends InputStream {
           } catch (IOException ignored) {}
         }
         if (process == null && rootRequired) {
-          throw new IOException("Failed to obtain elevated process (su or Shizuku) to scan " + root);
+          throw new IOException("Failed to obtain elevated process (su, Porter or Shizuku) to scan " + root);
         }
         if (process == null) {
           process = Runtime.getRuntime().exec(new String[] { binaryPath, root });

@@ -44,6 +44,7 @@ import android.os.StrictMode;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
+import com.google.android.diskusage.porter.PorterClient;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
@@ -123,6 +124,8 @@ public class DiskUsage extends LoadableActivity {
       handler.postDelayed(this::showTipsDialog, 1000);
     }
     try {
+      PorterClient.init(this);
+      PorterClient.addPermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.addBinderDeadListener(shizukuBinderDeadListener);
       rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
@@ -757,6 +760,14 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("Shizuku binder dead");
   };
 
+  private final PorterClient.OnPermissionResultListener porterPermissionListener =
+      (requestCode, granted) -> {
+        if (requestCode == SHIZUKU_REQ_CODE && granted) {
+          String mode = PorterClient.getUid() == 0 ? " (Root)" : " (Shell)";
+          Toast.makeText(this, getString(R.string.shizuku_permission_granted) + mode, Toast.LENGTH_SHORT).show();
+        }
+      };
+
   private final rikka.shizuku.Shizuku.OnRequestPermissionResultListener shizukuPermissionListener =
       (requestCode, grantResult) -> {
         if (requestCode == SHIZUKU_REQ_CODE) {
@@ -786,6 +797,7 @@ public class DiskUsage extends LoadableActivity {
     super.onDestroy();
     abortScan();
     try {
+      PorterClient.removePermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.removeBinderDeadListener(shizukuBinderDeadListener);
       rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
@@ -793,6 +805,23 @@ public class DiskUsage extends LoadableActivity {
   }
 
   public void requestShizukuAccess() {
+    // 0. Ensure Porter binder is fetched if available
+    PorterClient.fetchBinderFromManager(this);
+
+    // 1. If Porter binder is alive, request through Porter!
+    if (PorterClient.isAlive()) {
+      if (PorterClient.isGranted()) {
+        String mode = PorterClient.getUid() == 0 ? " (Root)" : " (Shell)";
+        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
+        return;
+      }
+      boolean requested = PorterClient.requestPermission(SHIZUKU_REQ_CODE);
+      if (requested) {
+        return;
+      }
+    }
+
+    // 2. If Shizuku binder is alive, request through Shizuku!
     try {
       if (rikka.shizuku.Shizuku.pingBinder()) {
         if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {

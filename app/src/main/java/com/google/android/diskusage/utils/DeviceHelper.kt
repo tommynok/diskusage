@@ -2,6 +2,7 @@ package com.google.android.diskusage.utils
 
 import android.content.Context
 import android.content.pm.PackageManager
+import com.google.android.diskusage.porter.PorterClient
 import rikka.shizuku.Shizuku
 import java.io.File
 
@@ -116,7 +117,25 @@ object DeviceHelper {
     }
 
     @JvmStatic
+    fun isPorterGranted(): Boolean {
+        return try {
+            PorterClient.isGranted()
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
+    fun isPorterRoot(): Boolean {
+        return try {
+            PorterClient.isGranted() && PorterClient.getUid() == 0
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    @JvmStatic
     fun isElevated(): Boolean {
-        return isDeviceRooted() || isShizukuGranted()
+        return isDeviceRooted() || isShizukuGranted() || isPorterGranted()
     }
 }

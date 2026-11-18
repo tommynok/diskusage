@@ -97,5 +97,14 @@
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL"
             tools:ignore="ProtectedPermissions" />
+
+        <provider
+            android:name="com.google.android.diskusage.porter.PorterApiProvider"
+            android:authorities="${applicationId}.porter.api"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL"
+            tools:ignore="ProtectedPermissions" />
     </application>
 </manifest> 

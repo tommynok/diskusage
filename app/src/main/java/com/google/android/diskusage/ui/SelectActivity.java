@@ -47,6 +47,7 @@ import com.google.android.diskusage.databinding.ItemStorageDriveBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
+import com.google.android.diskusage.porter.PorterClient;
 import com.google.android.diskusage.utils.AppIconCache;
 import com.google.android.diskusage.utils.DeviceHelper;
 import com.google.android.diskusage.utils.IOHelper;
@@ -73,6 +74,19 @@ public class SelectActivity extends Activity {
       };
 
   private final rikka.shizuku.Shizuku.OnBinderReceivedListener shizukuBinderReceivedListener = () -> {
+    if (DeviceHelper.isElevated()) {
+      runOnUiThread(this::updateStorageList);
+    }
+  };
+
+  private final PorterClient.OnPermissionResultListener porterPermissionListener =
+      (requestCode, granted) -> {
+        if (requestCode == SHIZUKU_REQ_CODE && granted) {
+          runOnUiThread(this::updateStorageList);
+        }
+      };
+
+  private final PorterClient.OnBinderReceivedListener porterBinderReceivedListener = () -> {
     if (DeviceHelper.isElevated()) {
       runOnUiThread(this::updateStorageList);
     }
@@ -253,7 +267,24 @@ public class SelectActivity extends Activity {
   }
 
   public void requestElevatedAccess() {
-    // 1. If Shizuku / Porter binder is alive, request through Shizuku / Porter
+    // 0. Ensure Porter binder is fetched if available
+    PorterClient.fetchBinderFromManager(this);
+
+    // 1. If Porter binder is alive, request through Porter!
+    if (PorterClient.isAlive()) {
+      if (PorterClient.isGranted()) {
+        String mode = PorterClient.getUid() == 0 ? " (Root)" : " (Shell)";
+        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
+        updateStorageList();
+        return;
+      }
+      boolean requested = PorterClient.requestPermission(SHIZUKU_REQ_CODE);
+      if (requested) {
+        return;
+      }
+    }
+
+    // 2. If Shizuku binder is alive, request through Shizuku!
     try {
       if (rikka.shizuku.Shizuku.pingBinder()) {
         if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
@@ -271,7 +302,7 @@ public class SelectActivity extends Activity {
       }
     } catch (Throwable ignored) {}
 
-    // 2. Try requesting Superuser / Root rights
+    // 3. Try requesting Superuser / Root rights
     new Thread(() -> {
       boolean rootGranted = DeviceHelper.requestRoot();
       runOnUiThread(() -> {
@@ -279,7 +310,7 @@ public class SelectActivity extends Activity {
           Toast.makeText(SelectActivity.this, R.string.root_permission_granted, Toast.LENGTH_SHORT).show();
           updateStorageList();
         } else {
-          // 3. If no root and no running Shizuku / Porter:
+          // 4. If no running Porter, no running Shizuku, and no root: offer to launch the installed manager app
           Intent launchIntent = null;
           if (DeviceHelper.isPorterInstalled(SelectActivity.this)) {
             launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
@@ -346,6 +377,9 @@ public class SelectActivity extends Activity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     try {
+      PorterClient.init(this);
+      PorterClient.addBinderReceivedListener(porterBinderReceivedListener);
+      PorterClient.addPermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
     } catch (Throwable ignored) {}
@@ -360,6 +394,8 @@ public class SelectActivity extends Activity {
   protected void onDestroy() {
     super.onDestroy();
     try {
+      PorterClient.removeBinderReceivedListener(porterBinderReceivedListener);
+      PorterClient.removePermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);
     } catch (Throwable ignored) {}
@@ -368,6 +404,7 @@ public class SelectActivity extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
+    PorterClient.fetchBinderFromManager(this);
     updateStorageList();
     handler.post(checkForMountsUpdates);
   }

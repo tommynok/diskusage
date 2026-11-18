@@ -88,7 +88,8 @@
     <string name="about_view_source_code"><![CDATA[Вихідний код: %s]]></string>
     <string name="action_about">Про програму</string>
     <string name="option_show_hide">[Показати/приховати]</string>
-    <string name="option_root_required">[Потрібні root-права]</string>
+    <string name="option_root_required">[Потрібні розширені права доступу]</string>
+    <string name="elevated_access_providers">Root, Shizuku або Porter</string>
     <string name="setup_visible_mount_points">Налаштування видимих розділів</string>
     <string-array name="select_apps">
         <item>На пристрої.</item>
@@ -123,10 +124,10 @@
     <string name="button_show_in_fm">У провіднику</string>
     <string name="menu_tips">Довідка</string>
     <string name="tips_dialog_title">Довідка</string>
-    <string name="menu_shizuku">Доступ до Shizuku</string>
-    <string name="shizuku_not_running">Служба Shizuku не запущена</string>
-    <string name="shizuku_permission_granted">Доступ до Shizuku надано</string>
-    <string name="shizuku_permission_already_granted">Доступ до Shizuku вже надано</string>
+    <string name="menu_shizuku">Доступ до Shizuku / Porter</string>
+    <string name="shizuku_not_running">Служба Shizuku / Porter не запущена</string>
+    <string name="shizuku_permission_granted">Доступ до Shizuku / Porter надано</string>
+    <string name="shizuku_permission_already_granted">Доступ до Shizuku / Porter вже надано</string>
     <string name="tip_bottom_sheet_title">Панель властивостей</string>
     <string name="tip_bottom_sheet_desc">Натисніть на заголовок угорі, утримуйте будь-який елемент або повторно торкніться файлу, щоб відкрити відомості та дії.</string>
     <string name="tip_copy_path_title">Швидке копіювання</string>

@@ -98,7 +98,8 @@
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
     <string name="action_about">About</string>
     <string name="option_show_hide">[Show/hide]</string>
-    <string name="option_root_required">[Root required]</string>
+    <string name="option_root_required">[Elevated permissions required]</string>
+    <string name="elevated_access_providers">Root, Shizuku, or Porter</string>
     <string name="setup_visible_mount_points">Setup visible mount points</string>
     <string name="mount_point_usage">Used %1$s of %2$s</string>
     <string name="mount_point_no_info">Used &lt;no information&gt;</string>
@@ -123,10 +124,10 @@
     <string name="button_show_in_fm">In File Manager</string>
     <string name="menu_tips">Help</string>
     <string name="tips_dialog_title">Help</string>
-    <string name="menu_shizuku">Shizuku access</string>
-    <string name="shizuku_not_running">Shizuku service is not running</string>
-    <string name="shizuku_permission_granted">Shizuku access granted</string>
-    <string name="shizuku_permission_already_granted">Shizuku access is already granted</string>
+    <string name="menu_shizuku">Shizuku / Porter access</string>
+    <string name="shizuku_not_running">Shizuku / Porter service is not running</string>
+    <string name="shizuku_permission_granted">Shizuku / Porter access granted</string>
+    <string name="shizuku_permission_already_granted">Shizuku / Porter access is already granted</string>
     <string name="tip_bottom_sheet_title">Properties Panel</string>
     <string name="tip_bottom_sheet_desc">Tap the toolbar title, long-press any item, or re-tap a file to open details and actions.</string>
     <string name="tip_copy_path_title">Quick Path Copy</string>

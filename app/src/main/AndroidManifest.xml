@@ -5,7 +5,7 @@
     android:versionCode="5001"
     android:versionName="5.0-alpha1">
 
-    <uses-sdk tools:overrideLibrary="moe.shizuku.provider, rikka.shizuku.aidl, rikka.shizuku.api, rikka.shizuku.provider, rikka.shizuku.shared, dev.rikka.shizuku.provider, dev.rikka.shizuku.api, dev.rikka.shizuku.aidl" />
+    <uses-sdk tools:overrideLibrary="moe.shizuku.provider, rikka.shizuku.aidl, rikka.shizuku.api, rikka.shizuku.provider, rikka.shizuku.shared, dev.rikka.shizuku.provider, dev.rikka.shizuku.api, dev.rikka.shizuku.aidl, eu.darken.porter.bridge, eu.darken.porter.sdk, eu.darken.porter.protocol, eu.darken.porter.sdk.extras" />
 
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
         tools:ignore="ProtectedPermissions"/>

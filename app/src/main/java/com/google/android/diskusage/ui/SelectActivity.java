@@ -191,7 +191,7 @@ public class SelectActivity extends Activity {
           R.drawable.ic_drive_settings, new ShowHideAction()));
     } else {
       items.add(new StorageItem(getString(R.string.option_root_required),
-          getString(R.string.menu_shizuku),
+          getString(R.string.elevated_access_providers),
           R.drawable.ic_drive_shield, () -> {
         try {
           if (rikka.shizuku.Shizuku.pingBinder()) {

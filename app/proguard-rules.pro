@@ -8,6 +8,10 @@
 -keep class rikka.shizuku.** { *; }
 -keep interface rikka.shizuku.** { *; }
 
+# Keep Porter classes
+-keep class eu.darken.porter.** { *; }
+-keep interface eu.darken.porter.** { *; }
+
 # Keep AndroidX annotations
 -keepattributes *Annotation*
 -dontwarn **

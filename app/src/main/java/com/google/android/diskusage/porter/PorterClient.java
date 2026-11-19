@@ -9,7 +9,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
-import android.os.Process;
 
 import com.google.android.diskusage.utils.Logger;
 
@@ -305,14 +304,14 @@ public class PorterClient {
      * Uses unique temp binary path, trap cleanup, and an asynchronous stdin-EOF monitor
      * that kills the process group immediately when PorterProcess.destroy() is called.
      */
-    public static Process runScannerProcess(String binaryPath, String root) throws IOException {
+    public static java.lang.Process runScannerProcess(String binaryPath, String root) throws IOException {
         synchronized (sProcessLock) { // F1 fix: Serialize scan execution per app PID
             if (!isAlive()) {
                 throw new IOException("Porter service is not connected");
             }
 
             long timestamp = System.currentTimeMillis();
-            int myPid = Process.myPid();
+            int myPid = android.os.Process.myPid();
             String tmpBin = "/data/local/tmp/du_scan_" + myPid + "_" + timestamp;
 
             // F2 & F8 fix: Self-terminating wrapper with monitor subshell, setsid group, and EXIT trap

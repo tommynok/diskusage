@@ -16,6 +16,7 @@ android {
         versionName buildNumber > 0 ? "${baseVersionName} (b${buildNumber})" : "${baseVersionName}-dev"
         targetSdk 33
         minSdk 21
+        resourceConfigurations += ['en', 'ru', 'uk']
     }
     buildFeatures {
         viewBinding true

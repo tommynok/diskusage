@@ -29,7 +29,7 @@ DiskUsage is a high-performance Android storage visualizer. Unlike standard file
 
 ### ✦ Added
 
-- Light theme
+- **Light theme**
 - **Universal Root** — verified compatibility with modern root solutions (KernelSU, Magisk, etc.)
 - **Rootless scanning via Shizuku & Porter** — analysis of system partitions (`/`, `/data`, `/system`) without kernel modification:
   - Shizuku support

@@ -1,12 +1,18 @@
 package com.google.android.diskusage.ui;
 
 import android.app.Activity;
+import android.app.AppOpsManager;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -23,6 +29,30 @@ public class PrivilegesDialog {
 
   public static final int SHIZUKU_REQ_CODE = 4001;
 
+  public static boolean hasAllFilesAccess(Context context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      return Environment.isExternalStorageManager();
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      return ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE)
+          == PackageManager.PERMISSION_GRANTED;
+    }
+    return true;
+  }
+
+  public static boolean hasUsageAccess(Context context) {
+    try {
+      PackageManager pm = context.getPackageManager();
+      ApplicationInfo info = pm.getApplicationInfo(context.getPackageName(), 0);
+      AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+      if (appOps == null) return false;
+      int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, info.uid, info.packageName);
+      return mode == AppOpsManager.MODE_ALLOWED;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   public static void show(Activity activity, Runnable onDismissCallback) {
     if (activity == null || activity.isFinishing()) return;
 
@@ -38,6 +68,13 @@ public class PrivilegesDialog {
       dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
       dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
       dialog.getWindow().setGravity(Gravity.BOTTOM);
+
+      // Auto-refresh when returning from system Settings
+      dialog.getWindow().getDecorView().getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus -> {
+        if (hasFocus && !activity.isFinishing()) {
+          activity.runOnUiThread(() -> updateViews(activity, binding, dialog));
+        }
+      });
     }
 
     Runnable refreshUi = () -> {
@@ -80,7 +117,52 @@ public class PrivilegesDialog {
 
     binding.btnPrivilegesClose.setOnClickListener(v -> dialog.dismiss());
 
-    // Root Action
+    // 1. All Files Access Action
+    binding.btnActionAllFiles.setOnClickListener(v -> {
+      if (hasAllFilesAccess(activity)) {
+        updateViews(activity, binding, dialog);
+        return;
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        try {
+          Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+          intent.setData(Uri.parse("package:" + activity.getPackageName()));
+          activity.startActivity(intent);
+        } catch (Throwable t) {
+          try {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+            activity.startActivity(intent);
+          } catch (Throwable ignored) {}
+        }
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        activity.requestPermissions(
+            new String[]{
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            },
+            102
+        );
+      }
+    });
+
+    // 2. Usage Stats Action
+    binding.btnActionUsage.setOnClickListener(v -> {
+      if (hasUsageAccess(activity)) {
+        updateViews(activity, binding, dialog);
+        return;
+      }
+      try {
+        Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+        activity.startActivity(intent);
+      } catch (Throwable t) {
+        try {
+          Intent intent = new Intent(Settings.ACTION_SETTINGS);
+          activity.startActivity(intent);
+        } catch (Throwable ignored) {}
+      }
+    });
+
+    // 3. Root Action
     binding.btnActionRoot.setOnClickListener(v -> {
       binding.btnActionRoot.setEnabled(false);
       binding.btnActionRoot.setText(R.string.privileges_btn_checking);
@@ -98,7 +180,7 @@ public class PrivilegesDialog {
       }).start();
     });
 
-    // Shizuku Action
+    // 4. Shizuku Action
     binding.btnActionShizuku.setOnClickListener(v -> {
       if (DeviceHelper.isShizukuGranted()) {
         updateViews(activity, binding, dialog);
@@ -124,7 +206,7 @@ public class PrivilegesDialog {
       }
     });
 
-    // Porter Action
+    // 5. Porter Action
     binding.btnActionPorter.setOnClickListener(v -> {
       if (PorterClient.isGranted()) {
         updateViews(activity, binding, dialog);
@@ -179,7 +261,31 @@ public class PrivilegesDialog {
       binding.tvActiveModeDesc.setText(R.string.privileges_active_none_desc);
     }
 
-    // 2. Root Provider Row
+    // 2. System Permissions: All Files Access
+    boolean allFiles = hasAllFilesAccess(activity);
+    if (allFiles) {
+      binding.ivDotAllFiles.setImageResource(R.drawable.dot_status_green);
+      binding.btnActionAllFiles.setEnabled(false);
+      binding.btnActionAllFiles.setText(R.string.permissions_granted);
+    } else {
+      binding.ivDotAllFiles.setImageResource(R.drawable.dot_status_orange);
+      binding.btnActionAllFiles.setEnabled(true);
+      binding.btnActionAllFiles.setText(R.string.permissions_enable);
+    }
+
+    // 3. System Permissions: Usage Statistics
+    boolean usage = hasUsageAccess(activity);
+    if (usage) {
+      binding.ivDotUsage.setImageResource(R.drawable.dot_status_green);
+      binding.btnActionUsage.setEnabled(false);
+      binding.btnActionUsage.setText(R.string.permissions_granted);
+    } else {
+      binding.ivDotUsage.setImageResource(R.drawable.dot_status_gray);
+      binding.btnActionUsage.setEnabled(true);
+      binding.btnActionUsage.setText(R.string.permissions_enable);
+    }
+
+    // 4. Elevated Privileges: Root
     if (rootGranted) {
       binding.ivDotRoot.setImageResource(R.drawable.dot_status_green);
       binding.tvStatusRoot.setText(activity.getString(R.string.privileges_status_granted, 0));
@@ -190,7 +296,7 @@ public class PrivilegesDialog {
       binding.btnActionRoot.setText(R.string.privileges_btn_request);
     }
 
-    // 3. Shizuku Provider Row
+    // 5. Elevated Privileges: Shizuku
     if (shizukuGranted) {
       binding.ivDotShizuku.setImageResource(R.drawable.dot_status_green);
       binding.tvStatusShizuku.setText(activity.getString(R.string.privileges_status_granted, DeviceHelper.getShizukuUid()));
@@ -217,7 +323,7 @@ public class PrivilegesDialog {
       }
     }
 
-    // 4. Porter Provider Row
+    // 6. Elevated Privileges: Porter
     if (porterGranted) {
       binding.ivDotPorter.setImageResource(R.drawable.dot_status_green);
       binding.tvStatusPorter.setText(activity.getString(R.string.privileges_status_granted, DeviceHelper.getPorterUid()));

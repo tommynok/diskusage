@@ -32,8 +32,8 @@
         android:id="@+id/ll_active_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="14dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
         android:background="@drawable/bg_active_mode_card"
         android:orientation="vertical"
         android:padding="12dp">
@@ -51,19 +51,160 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
-            android:textSize="12.5sp"
+            android:textSize="12sp"
             android:textColor="?android:attr/textColorSecondary" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fadeScrollbars="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <!-- Section 1: Android System Permissions -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="6dp"
+                android:text="@string/permissions_section_system"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <!-- Row 1: All files access -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_path_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                android:layout_marginBottom="6dp">
+
+                <ImageView
+                    android:id="@+id/iv_dot_all_files"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/dot_status_gray"
+                    android:contentDescription="Status indicator" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/permissions_all_files_title"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/tv_status_all_files"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="@string/permissions_all_files_desc"
+                        android:textSize="11.5sp"
+                        android:textColor="?android:attr/textColorSecondary" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_action_all_files"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:minWidth="80dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textSize="11.5sp"
+                    android:text="@string/permissions_enable" />
+            </LinearLayout>
+
+            <!-- Row 2: Usage statistics -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_path_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                android:layout_marginBottom="6dp">
+
+                <ImageView
+                    android:id="@+id/iv_dot_usage"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/dot_status_gray"
+                    android:contentDescription="Status indicator" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/permissions_usage_title"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/tv_status_usage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="@string/permissions_usage_desc"
+                        android:textSize="11.5sp"
+                        android:textColor="?android:attr/textColorSecondary" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_action_usage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:minWidth="80dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textSize="11.5sp"
+                    android:text="@string/permissions_enable" />
+            </LinearLayout>
+
+            <!-- Special Permissions Note / Hint -->
+            <TextView
+                android:id="@+id/tv_special_permissions_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_path_card"
+                android:padding="9dp"
+                android:text="@string/permissions_special_hint"
+                android:textSize="11.5sp"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <!-- Section 2: Elevated Privileges -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="@string/permissions_section_elevated"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorSecondary" />
 
             <!-- Provider 1: Root (su) -->
             <LinearLayout
@@ -72,13 +213,13 @@
                 android:background="@drawable/bg_path_card"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp"
-                android:layout_marginBottom="8dp">
+                android:padding="10dp"
+                android:layout_marginBottom="6dp">
 
                 <ImageView
                     android:id="@+id/iv_dot_root"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
                     android:layout_marginEnd="10dp"
                     android:src="@drawable/dot_status_gray"
                     android:contentDescription="Status indicator" />
@@ -93,7 +234,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/privileges_provider_root"
-                        android:textSize="14sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold"
                         android:textColor="?android:attr/textColorPrimary" />
 
@@ -101,36 +242,36 @@
                         android:id="@+id/tv_status_root"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textSize="12sp"
+                        android:layout_marginTop="1dp"
+                        android:textSize="11.5sp"
                         android:textColor="?android:attr/textColorSecondary" />
                 </LinearLayout>
 
                 <Button
                     android:id="@+id/btn_action_root"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:minWidth="80dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="12sp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textSize="11.5sp"
                     android:text="@string/privileges_btn_check" />
             </LinearLayout>
 
-            <!-- Provider 2: Shizuku API -->
+            <!-- Provider 2: Shizuku -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_path_card"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp"
-                android:layout_marginBottom="8dp">
+                android:padding="10dp"
+                android:layout_marginBottom="6dp">
 
                 <ImageView
                     android:id="@+id/iv_dot_shizuku"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
                     android:layout_marginEnd="10dp"
                     android:src="@drawable/dot_status_gray"
                     android:contentDescription="Status indicator" />
@@ -145,7 +286,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/privileges_provider_shizuku"
-                        android:textSize="14sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold"
                         android:textColor="?android:attr/textColorPrimary" />
 
@@ -153,36 +294,36 @@
                         android:id="@+id/tv_status_shizuku"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textSize="12sp"
+                        android:layout_marginTop="1dp"
+                        android:textSize="11.5sp"
                         android:textColor="?android:attr/textColorSecondary" />
                 </LinearLayout>
 
                 <Button
                     android:id="@+id/btn_action_shizuku"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:minWidth="80dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="12sp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textSize="11.5sp"
                     android:text="@string/privileges_btn_request" />
             </LinearLayout>
 
-            <!-- Provider 3: Porter API -->
+            <!-- Provider 3: Porter -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_path_card"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:layout_marginBottom="12dp">
 
                 <ImageView
                     android:id="@+id/iv_dot_porter"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
                     android:layout_marginEnd="10dp"
                     android:src="@drawable/dot_status_gray"
                     android:contentDescription="Status indicator" />
@@ -197,7 +338,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/privileges_provider_porter"
-                        android:textSize="14sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold"
                         android:textColor="?android:attr/textColorPrimary" />
 
@@ -205,28 +346,28 @@
                         android:id="@+id/tv_status_porter"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textSize="12sp"
+                        android:layout_marginTop="1dp"
+                        android:textSize="11.5sp"
                         android:textColor="?android:attr/textColorSecondary" />
                 </LinearLayout>
 
                 <Button
                     android:id="@+id/btn_action_porter"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:minWidth="80dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="12sp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textSize="11.5sp"
                     android:text="@string/privileges_btn_request" />
             </LinearLayout>
 
             <Button
                 android:id="@+id/btn_privileges_close"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="42dp"
                 android:text="@string/button_got_it"
-                android:textSize="14sp" />
+                android:textSize="13.5sp" />
 
         </LinearLayout>
     </ScrollView>

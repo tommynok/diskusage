@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:installLocation="auto"
-    android:versionCode="5001"
-    android:versionName="5.0-alpha1">
+    android:installLocation="auto">
 
     <uses-sdk tools:overrideLibrary="moe.shizuku.provider, rikka.shizuku.aidl, rikka.shizuku.api, rikka.shizuku.provider, rikka.shizuku.shared, dev.rikka.shizuku.provider, dev.rikka.shizuku.api, dev.rikka.shizuku.aidl, eu.darken.porter.bridge, eu.darken.porter.sdk, eu.darken.porter.protocol, eu.darken.porter.sdk.extras" />
 

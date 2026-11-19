@@ -6,8 +6,14 @@ android {
     buildToolsVersion "34.0.0"
     ndkVersion "25.2.9519653"
 
+    def buildNumber = Integer.parseInt(System.getenv("BUILD_NUMBER") ?: (System.getenv("GITHUB_RUN_NUMBER") ?: "0"))
+    def baseVersionCode = 5000
+    def baseVersionName = "5.0-beta"
+
     defaultConfig {
         applicationId "com.diskusage.ng"
+        versionCode baseVersionCode + buildNumber
+        versionName buildNumber > 0 ? "${baseVersionName} (b${buildNumber})" : "${baseVersionName}-dev"
         targetSdk 33
         minSdk 21
     }
@@ -83,7 +89,8 @@ android {
 
 android.applicationVariants.all { variant ->
     variant.outputs.all {
-        outputFileName = "diskusage-v${variant.versionName}-${variant.name}.apk"
+        def safeVersion = variant.versionName.replace(" (b", "-b").replace(")", "")
+        outputFileName = "diskusage-v${safeVersion}-${variant.name}.apk"
     }
 }
 

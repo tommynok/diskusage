@@ -310,17 +310,11 @@ public class PorterClient {
                 throw new IOException("Porter service is not connected");
             }
 
-            long timestamp = System.currentTimeMillis();
-            int myPid = android.os.Process.myPid();
-            String tmpBin = "/data/local/tmp/du_scan_" + myPid + "_" + timestamp;
-
-            // F2 & F8 fix: Self-terminating wrapper with monitor subshell, setsid group, and EXIT trap
+            // F2 fix: Self-terminating wrapper with monitor subshell, setsid group, and EXIT trap
+            // Directly executes binaryPath without copying to /data/local/tmp (eliminates F8 temp file risk)
             String cmd = "(cat >/dev/null; kill -TERM -$PID 2>/dev/null || kill -TERM $PID 2>/dev/null; sleep 0.1; kill -KILL -$PID 2>/dev/null || kill -KILL $PID 2>/dev/null) & MON_PID=$!; "
-                       + "TMP=" + escapeShellArg(tmpBin) + "; "
-                       + "trap 'rm -f \"$TMP\"; kill $MON_PID 2>/dev/null' EXIT; "
-                       + "cp -f " + escapeShellArg(binaryPath) + " \"$TMP\" && "
-                       + "chmod 700 \"$TMP\" && "
-                       + "(setsid \"$TMP\" " + escapeShellArg(root) + " 2>/dev/null || \"$TMP\" " + escapeShellArg(root) + ") & PID=$!; "
+                       + "trap 'kill $MON_PID 2>/dev/null' EXIT; "
+                       + "(setsid " + escapeShellArg(binaryPath) + " " + escapeShellArg(root) + " 2>/dev/null || " + escapeShellArg(binaryPath) + " " + escapeShellArg(root) + ") & PID=$!; "
                        + "wait $PID; RET=$?; "
                        + "exit $RET";
 

@@ -169,13 +169,8 @@ public class NativeScannerStream extends InputStream {
     }
 
     private static Process runWithShizuku(String binaryPath, String root) throws IOException {
-      // F8 fix: Escape shell arguments and use unique temp binary with trap cleanup
-      String tmpBin = "/data/local/tmp/du_scan_" + android.os.Process.myPid() + "_" + System.currentTimeMillis();
-      String cmd = "TMP=" + PorterClient.escapeShellArg(tmpBin) + "; "
-                 + "trap 'rm -f \"$TMP\"' EXIT; "
-                 + "cp -f " + PorterClient.escapeShellArg(binaryPath) + " \"$TMP\" && "
-                 + "chmod 700 \"$TMP\" && "
-                 + "\"$TMP\" " + PorterClient.escapeShellArg(root);
+      String cmd = "(setsid " + PorterClient.escapeShellArg(binaryPath) + " " + PorterClient.escapeShellArg(root)
+                 + " 2>/dev/null || " + PorterClient.escapeShellArg(binaryPath) + " " + PorterClient.escapeShellArg(root) + ")";
       try {
         Logger.getLOGGER().d("NativeScannerStream: executing via Shizuku: %s", cmd);
         java.lang.reflect.Method m = rikka.shizuku.Shizuku.class.getDeclaredMethod(
@@ -189,13 +184,7 @@ public class NativeScannerStream extends InputStream {
     }
 
     private static Process runWithSu(String binaryPath, String root) throws IOException {
-      // F8 fix: Escape shell arguments and use unique temp binary with trap cleanup
-      String tmpBin = "/data/local/tmp/du_scan_" + android.os.Process.myPid() + "_" + System.currentTimeMillis();
-      String cmd = "TMP=" + PorterClient.escapeShellArg(tmpBin) + "; "
-                 + "trap 'rm -f \"$TMP\"' EXIT; "
-                 + "cp -f " + PorterClient.escapeShellArg(binaryPath) + " \"$TMP\" && "
-                 + "chmod 700 \"$TMP\" && "
-                 + "\"$TMP\" " + PorterClient.escapeShellArg(root);
+      String cmd = PorterClient.escapeShellArg(binaryPath) + " " + PorterClient.escapeShellArg(root);
       IOException lastException = null;
       for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
         try {

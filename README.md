@@ -8,21 +8,20 @@
   <b>English</b> | <a href="README.ru.md">Русский</a>
 </p>
 
-> A modernized fork of the classic [DiskUsage](https://github.com/IvanVolosyuk/diskusage) application by Ivan Volosyuk. Sincere gratitude to the original author for creating an indispensable Android utility and releasing it under the GNU General Public License v2!
+> A modernized fork of the classic [DiskUsage](https://github.com/IvanVolosyuk/diskusage) application by Ivan Volosyuk. Sincere gratitude to the author for creating an indispensable Android utility and publishing the source code!
 
 ---
 
 ## About the application
 
-DiskUsage is a high-performance Android storage visualizer. Unlike standard file managers with flat lists, it renders a visual proportional map of your storage where directories and files are shown as proportional blocks. Zoom in, inspect what is eating your storage, and clean up space safely.
+DiskUsage is a high-performance Android storage visualizer. Unlike standard file managers with flat lists, it renders a visual proportional map of your storage (treemap) where directories and files are shown as proportional blocks. Zoom in, inspect what is eating your storage, and clean up space safely.
 
 **Core features:**
 
 - Visual proportional treemap representation of internal storage, SD cards, and USB drives
 - Deep directory zoom and fluid interactive navigation
-- Safe deletion with item inspection and system-level protections
-- Reveal files and folders directly in supported file managers (MiXplorer, Total Commander, Solid Explorer, Material Files)
-- 100% offline, zero internet permissions, zero ads, zero tracking
+- Safe deletion with detailed item properties and accidental removal prevention
+- Quick reveal of files and folders in popular file managers (MiXplorer, Total Commander, Solid Explorer, Material Files)
 
 ---
 
@@ -30,20 +29,18 @@ DiskUsage is a high-performance Android storage visualizer. Unlike standard file
 
 ### ✦ Added
 
-- **Universal Root support** — verified compatibility with modern root solutions (KernelSU, APatch, SukiSU, Magisk, SuperSU, and LineageOS `su`)
-- **Rootless elevated access via Shizuku & Porter** — scan root filesystems (`/`, `/data`, `/system`) without rooting your device:
-  - Supports [Shizuku](https://shizuku.rikka.app/)
-  - Supports [Porter](https://github.com/d4rken-org/porter) (daemon by darken)
-- **Unified "Permissions & Access" control sheet** — interactive live status indicators (🟢 / 🟡 / ⚪) for all Android system permissions and elevated providers, with direct action buttons and clear explanations
-- **Direct native library execution** — eliminates temporary script unpacking to `/data/local/tmp` for security and clean cancellation
-- **Dynamic semantic versioning** — automated CI build numbering with clear version names in the About dialog
+- Light theme
+- **Universal Root** — verified compatibility with modern root solutions (KernelSU, Magisk, etc.)
+- **Rootless scanning via Shizuku & Porter** — analysis of system partitions (`/`, `/data`, `/system`) without kernel modification:
+  - Shizuku support
+  - [Porter](https://github.com/d4rken-org/porter) support (service by the author of SD Maid)
+- **"Permissions & Access" control center** — a unified bottom sheet with indicators (🟢 / 🟡 / ⚪) for system permissions and privileges, check buttons, and helpful tips
 
 ### ✦ Improved
 
-- Fully compatible with modern Android releases (Android 11 through 15+)
-- Safe folder reveal using `file://` exposure bypass and an adaptive file manager selector
-- Modernized UI with edge-to-edge support, light status bars, and rounded bottom-sheet dialogs
-- Streamlined package size: stripped unused third-party translations, keeping only English, Russian, and Ukrainian
+- Full compatibility with modern Android versions (Android 11–15+)
+- Opening folders in third-party file managers without `FileProvider` crashes
+- Modernized UI: clean bottom sheets instead of outdated legacy popup windows
 
 ---
 

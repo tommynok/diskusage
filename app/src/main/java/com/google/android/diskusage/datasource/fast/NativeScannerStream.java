@@ -14,10 +14,32 @@ public class NativeScannerStream extends InputStream {
 
   private final InputStream is;
   private final Process process;
+  private final ByteArrayOutputStream stderrBuffer = new ByteArrayOutputStream();
+  private final Thread stderrThread;
 
   public NativeScannerStream(InputStream is, Process process) {
     this.is = is;
     this.process = process;
+
+    // F9 fix: Buffer stderr asynchronously in background daemon thread
+    this.stderrThread = new Thread(() -> {
+      try {
+        InputStream es = process != null ? process.getErrorStream() : null;
+        if (es != null) {
+          byte[] buf = new byte[1024];
+          int r;
+          while ((r = es.read(buf)) > 0) {
+            synchronized (stderrBuffer) {
+              if (stderrBuffer.size() < 16384) { // Cap at 16KB
+                stderrBuffer.write(buf, 0, r);
+              }
+            }
+          }
+        }
+      } catch (Throwable ignored) {}
+    }, "ScannerStream-stderr");
+    this.stderrThread.setDaemon(true);
+    this.stderrThread.start();
   }
 
   @Override
@@ -37,20 +59,13 @@ public class NativeScannerStream extends InputStream {
   }
 
   public String getErrorOutput() {
-    try {
-      InputStream es = process.getErrorStream();
-      if (es != null) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buf = new byte[1024];
-        while (es.available() > 0) {
-          int read = es.read(buf);
-          if (read <= 0) break;
-          baos.write(buf, 0, read);
-        }
-        return baos.toString("UTF-8").trim();
+    synchronized (stderrBuffer) {
+      try {
+        return stderrBuffer.toString("UTF-8").trim();
+      } catch (Throwable ignored) {
+        return stderrBuffer.toString().trim();
       }
-    } catch (Throwable ignored) {}
-    return "";
+    }
   }
 
   @Override
@@ -58,6 +73,11 @@ public class NativeScannerStream extends InputStream {
     try {
       if (process != null) {
         process.destroy();
+      }
+    } catch (Throwable ignored) {}
+    try {
+      if (stderrThread != null) {
+        stderrThread.join(150);
       }
     } catch (Throwable ignored) {}
     try {
@@ -90,11 +110,25 @@ public class NativeScannerStream extends InputStream {
       boolean usePorter = DeviceHelper.isPorterGranted();
       boolean useShizuku = DeviceHelper.isShizukuGranted();
 
+      // F10 fix: Fallback cascade: direct verified su -> Porter -> Shizuku
       if (useDirectSu) {
         try {
           process = runWithSu(binaryPath, root);
+          // Check if su process died immediately (e.g. su binary broken or denied)
+          try {
+            Thread.sleep(50);
+            int exit = process.exitValue();
+            if (exit != 0) {
+              Logger.getLOGGER().w("NativeScannerStream: su exited immediately with code %d, falling back", exit);
+              process.destroy();
+              process = null;
+            }
+          } catch (IllegalThreadStateException stillRunning) {
+            // Process is alive and streaming
+          }
         } catch (IOException e) {
           Logger.getLOGGER().e("NativeScannerStream: direct su failed: %s", e.getMessage());
+          process = null;
         }
       }
 
@@ -103,6 +137,7 @@ public class NativeScannerStream extends InputStream {
           process = PorterClient.runScannerProcess(binaryPath, root);
         } catch (IOException e) {
           Logger.getLOGGER().e("NativeScannerStream: Porter execution failed: %s", e.getMessage());
+          process = null;
         }
       }
 
@@ -111,6 +146,7 @@ public class NativeScannerStream extends InputStream {
           process = runWithShizuku(binaryPath, root);
         } catch (IOException e) {
           Logger.getLOGGER().e("NativeScannerStream: Shizuku execution failed: %s", e.getMessage());
+          process = null;
         }
       }
 
@@ -133,10 +169,13 @@ public class NativeScannerStream extends InputStream {
     }
 
     private static Process runWithShizuku(String binaryPath, String root) throws IOException {
-      String cmd = "TMP=/data/local/tmp/du_scan_$(id -u 2>/dev/null || echo 0); "
-                 + "cp -f \"" + binaryPath + "\" \"$TMP\" 2>/dev/null; "
-                 + "chmod 755 \"$TMP\" 2>/dev/null; "
-                 + "\"$TMP\" \"" + root + "\" || \"" + binaryPath + "\" \"" + root + "\"";
+      // F8 fix: Escape shell arguments and use unique temp binary with trap cleanup
+      String tmpBin = "/data/local/tmp/du_scan_" + android.os.Process.myPid() + "_" + System.currentTimeMillis();
+      String cmd = "TMP=" + PorterClient.escapeShellArg(tmpBin) + "; "
+                 + "trap 'rm -f \"$TMP\"' EXIT; "
+                 + "cp -f " + PorterClient.escapeShellArg(binaryPath) + " \"$TMP\" && "
+                 + "chmod 700 \"$TMP\" && "
+                 + "\"$TMP\" " + PorterClient.escapeShellArg(root);
       try {
         Logger.getLOGGER().d("NativeScannerStream: executing via Shizuku: %s", cmd);
         java.lang.reflect.Method m = rikka.shizuku.Shizuku.class.getDeclaredMethod(
@@ -150,9 +189,13 @@ public class NativeScannerStream extends InputStream {
     }
 
     private static Process runWithSu(String binaryPath, String root) throws IOException {
-      String cmd = "cp \"" + binaryPath + "\" /data/local/tmp/diskusage_scan 2>/dev/null; "
-                 + "chmod 755 /data/local/tmp/diskusage_scan 2>/dev/null; "
-                 + "/data/local/tmp/diskusage_scan \"" + root + "\" || \"" + binaryPath + "\" \"" + root + "\"";
+      // F8 fix: Escape shell arguments and use unique temp binary with trap cleanup
+      String tmpBin = "/data/local/tmp/du_scan_" + android.os.Process.myPid() + "_" + System.currentTimeMillis();
+      String cmd = "TMP=" + PorterClient.escapeShellArg(tmpBin) + "; "
+                 + "trap 'rm -f \"$TMP\"' EXIT; "
+                 + "cp -f " + PorterClient.escapeShellArg(binaryPath) + " \"$TMP\" && "
+                 + "chmod 700 \"$TMP\" && "
+                 + "\"$TMP\" " + PorterClient.escapeShellArg(root);
       IOException lastException = null;
       for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
         try {

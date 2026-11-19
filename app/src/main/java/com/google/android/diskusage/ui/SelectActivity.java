@@ -74,22 +74,28 @@ public class SelectActivity extends Activity {
       };
 
   private final rikka.shizuku.Shizuku.OnBinderReceivedListener shizukuBinderReceivedListener = () -> {
-    if (DeviceHelper.isElevated()) {
-      runOnUiThread(this::updateStorageList);
-    }
+    new Thread(() -> {
+      if (DeviceHelper.isElevated()) {
+        runOnUiThread(this::updateStorageList);
+      }
+    }).start();
   };
 
   private final PorterClient.OnPermissionResultListener porterPermissionListener =
       (requestCode, granted) -> {
-        if (requestCode == SHIZUKU_REQ_CODE && granted) {
-          runOnUiThread(this::updateStorageList);
-        }
+        runOnUiThread(this::updateStorageList);
       };
 
   private final PorterClient.OnBinderReceivedListener porterBinderReceivedListener = () -> {
-    if (DeviceHelper.isElevated()) {
-      runOnUiThread(this::updateStorageList);
-    }
+    new Thread(() -> {
+      if (DeviceHelper.isElevated()) {
+        runOnUiThread(this::updateStorageList);
+      }
+    }).start();
+  };
+
+  private final PorterClient.OnBinderLostListener porterBinderLostListener = () -> {
+    runOnUiThread(this::updateStorageList);
   };
 
   private abstract class AbstractUsageAction implements Runnable {
@@ -379,6 +385,7 @@ public class SelectActivity extends Activity {
     try {
       PorterClient.init(this);
       PorterClient.addBinderReceivedListener(porterBinderReceivedListener);
+      PorterClient.addBinderLostListener(porterBinderLostListener);
       PorterClient.addPermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.addRequestPermissionResultListener(shizukuPermissionListener);
@@ -395,6 +402,7 @@ public class SelectActivity extends Activity {
     super.onDestroy();
     try {
       PorterClient.removeBinderReceivedListener(porterBinderReceivedListener);
+      PorterClient.removeBinderLostListener(porterBinderLostListener);
       PorterClient.removePermissionResultListener(porterPermissionListener);
       rikka.shizuku.Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener);
       rikka.shizuku.Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener);

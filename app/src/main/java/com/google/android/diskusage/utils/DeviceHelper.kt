@@ -21,61 +21,61 @@ object DeviceHelper {
         isRootedCache = null
     }
 
+    /**
+     * Executes 'su -c id' to verify if superuser is actually granted and usable.
+     * Always destroys the probe process to avoid lingering zombie processes.
+     */
     @JvmStatic
     fun requestRoot(): Boolean {
         for (cmd in arrayOf("su", "/system/bin/su", "/system/xbin/su")) {
+            var p: Process? = null
             try {
-                val p = Runtime.getRuntime().exec(arrayOf(cmd, "-c", "id"))
+                p = Runtime.getRuntime().exec(arrayOf(cmd, "-c", "id"))
                 val exitCode = p.waitFor()
                 if (exitCode == 0) {
                     isRootedCache = true
                     return true
                 }
-            } catch (ignored: Throwable) {}
+            } catch (ignored: Throwable) {
+            } finally {
+                try { p?.destroy() } catch (ignored: Throwable) {}
+            }
         }
         return false
     }
 
+    /**
+     * Returns true only if root execution has been verified and granted.
+     * F10 fix: Never assume root purely based on file existence of /system/bin/su.
+     */
     @JvmStatic
     fun isDeviceRooted(): Boolean {
         isRootedCache?.let { return it }
 
-        // 1. File checks
-        val su = "su"
-        val locations = arrayOf(
-            "/system/bin/", "/system/xbin/", "/sbin/", "/system/sd/xbin/",
-            "/system/bin/failsafe/", "/data/local/xbin/", "/data/local/bin/", "/data/local/",
-            "/system/sbin/", "/usr/bin/", "/vendor/bin/", "/data/adb/ksu/bin/", "/data/adb/ap/bin/", "/data/adb/magisk/"
+        // Fast check: verify if su file exists in any known path before attempting exec
+        val suLocations = arrayOf(
+            "/system/bin/su", "/system/xbin/su", "/sbin/su", "/system/sd/xbin/su",
+            "/data/local/xbin/su", "/data/local/bin/su", "/data/local/su",
+            "/system/sbin/su", "/usr/bin/su", "/vendor/bin/su",
+            "/data/adb/ksu/bin/su", "/data/adb/ap/bin/su", "/data/adb/magisk/su"
         )
-        for (location in locations) {
-            if (File("${location}${su}").exists()) {
-                isRootedCache = true
-                return true
+        var suBinaryPresent = false
+        for (loc in suLocations) {
+            if (File(loc).exists()) {
+                suBinaryPresent = true
+                break
             }
         }
 
-        // 2. Execution check for KernelSU / APatch / Magisk
-        for (cmd in arrayOf("su", "/system/bin/su", "/system/xbin/su")) {
-            try {
-                val p = Runtime.getRuntime().exec(arrayOf(cmd, "-v"))
-                val exitCode = p.waitFor()
-                if (exitCode == 0 || p.inputStream.read() != -1) {
-                    isRootedCache = true
-                    return true
-                }
-            } catch (ignored: Throwable) {}
+        if (!suBinaryPresent) {
+            isRootedCache = false
+            return false
         }
 
-        try {
-            val p = Runtime.getRuntime().exec(arrayOf("which", "su"))
-            if (p.waitFor() == 0 && p.inputStream.read() != -1) {
-                isRootedCache = true
-                return true
-            }
-        } catch (ignored: Throwable) {}
-
-        // Do not cache false permanently so su can be attempted on demand
-        return false
+        // Verify that su actually works
+        val works = requestRoot()
+        isRootedCache = works
+        return works
     }
 
     @JvmStatic

@@ -91,14 +91,18 @@ object DeviceHelper {
         return false
     }
 
+    fun interface RootProbeCallback {
+        fun onRootProbed(granted: Boolean)
+    }
+
     /**
      * Probes root status in a background thread and triggers callback on completion.
      */
     @JvmStatic
-    fun probeRootAsync(onComplete: ((Boolean) -> Unit)? = null) {
+    fun probeRootAsync(callback: RootProbeCallback? = null) {
         val t = Thread({
             val granted = requestRootFastProbe()
-            onComplete?.invoke(granted)
+            callback?.onRootProbed(granted)
         }, "du-root-probe")
         t.isDaemon = true
         t.start()

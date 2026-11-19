@@ -347,7 +347,7 @@ public class PorterClient {
                 data.writeFileDescriptor(stdinPipe[0].getFileDescriptor());
                 data.writeFileDescriptor(stdoutPipe[1].getFileDescriptor());
                 data.writeFileDescriptor(stderrPipe[1].getFileDescriptor());
-                data.writeStringArray(new String[] { "sh", "-c", cmd });
+                data.writeStringArray(new String[] { "-c", cmd });
                 data.writeStringArray(new String[0]); // env
                 data.writeString(null); // dir
 

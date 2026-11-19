@@ -53,8 +53,8 @@ def snapshot_procs():
 def logcat_thread():
     p = subprocess.Popen(["adb", "logcat", "-v", "time"], stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, text=True,
-                         encoding="utf-8", errors="replace")
-    for line in p.stdout:
+                         encoding="utf-8", errors="replace", bufsize=1)
+    for line in iter(p.stdout.readline, ''):
         if stop_log.is_set():
             break
         with log_lock:
@@ -131,7 +131,11 @@ def main():
     baseline_procs = snapshot_procs()
     say(f"Фоновых процессов скана до старта: {len(baseline_procs)}")
 
-    # 1.2 Синтетический запуск: открываем сканирование корня через Intent
+    # 1.2 Инициализация соединения с Porter и запуск скана
+    say("-> Инициализация SelectActivity для подключения Porter...")
+    adb("shell", "am", "start", "-n", f"{PKG}/com.google.android.diskusage.ui.SelectActivity")
+    time.sleep(0.6)
+
     say("-> Синтетический запуск DiskUsage на rooted:/ через Intent...")
     adb("shell", "am", "start", "-n", f"{PKG}/com.google.android.diskusage.ui.DiskUsage",
         "--es", "key", "rooted:/")

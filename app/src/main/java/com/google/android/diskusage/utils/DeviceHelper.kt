@@ -2,9 +2,11 @@ package com.google.android.diskusage.utils
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Looper
 import com.google.android.diskusage.porter.PorterClient
 import rikka.shizuku.Shizuku
-import java.io.File
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 object DeviceHelper {
 
@@ -22,8 +24,8 @@ object DeviceHelper {
     }
 
     /**
-     * Executes 'su -c id' to verify if superuser is actually granted and usable.
-     * Always destroys the probe process to avoid lingering zombie processes.
+     * Executes 'su -c id' allowing full time for the user to respond to root manager prompts
+     * (KernelSU, APatch, SukiSU, Magisk, SuperSU, LOS su, etc.).
      */
     @JvmStatic
     fun requestRoot(): Boolean {
@@ -33,6 +35,50 @@ object DeviceHelper {
                 p = Runtime.getRuntime().exec(arrayOf(cmd, "-c", "id"))
                 val exitCode = p.waitFor()
                 if (exitCode == 0) {
+                    val line = BufferedReader(InputStreamReader(p.inputStream)).readLine() ?: ""
+                    if (line.contains("uid=0")) {
+                        isRootedCache = true
+                        return true
+                    }
+                }
+            } catch (ignored: Throwable) {
+            } finally {
+                try { p?.destroy() } catch (ignored: Throwable) {}
+            }
+        }
+        isRootedCache = false
+        return false
+    }
+
+    /**
+     * Quick probe that waits at most 800ms for 'su -c id'.
+     * If root was already granted, modern root managers return uid=0 within 10-30ms.
+     */
+    @JvmStatic
+    fun requestRootFastProbe(): Boolean {
+        for (cmd in arrayOf("su", "/system/bin/su", "/system/xbin/su")) {
+            var p: Process? = null
+            try {
+                p = Runtime.getRuntime().exec(arrayOf(cmd, "-c", "id"))
+                val proc = p
+                var success = false
+                val waitThread = Thread {
+                    try {
+                        val exitCode = proc.waitFor()
+                        if (exitCode == 0) {
+                            val line = BufferedReader(InputStreamReader(proc.inputStream)).readLine() ?: ""
+                            if (line.contains("uid=0")) {
+                                success = true
+                            }
+                        }
+                    } catch (ignored: Throwable) {}
+                }
+                waitThread.start()
+                waitThread.join(800)
+                if (waitThread.isAlive) {
+                    waitThread.interrupt()
+                    proc.destroy()
+                } else if (success) {
                     isRootedCache = true
                     return true
                 }
@@ -41,41 +87,35 @@ object DeviceHelper {
                 try { p?.destroy() } catch (ignored: Throwable) {}
             }
         }
+        isRootedCache = false
         return false
     }
 
     /**
-     * Returns true only if root execution has been verified and granted.
-     * F10 fix: Never assume root purely based on file existence of /system/bin/su.
+     * Probes root status in a background thread and triggers callback on completion.
+     */
+    @JvmStatic
+    fun probeRootAsync(onComplete: ((Boolean) -> Unit)? = null) {
+        val t = Thread({
+            val granted = requestRootFastProbe()
+            onComplete?.invoke(granted)
+        }, "du-root-probe")
+        t.isDaemon = true
+        t.start()
+    }
+
+    /**
+     * Returns true if root execution is verified and granted.
+     * Safe to call on main thread (returns cached state or false without blocking).
+     * On background worker thread, performs fast probe if cache is uninitialized.
      */
     @JvmStatic
     fun isDeviceRooted(): Boolean {
         isRootedCache?.let { return it }
-
-        // Fast check: verify if su file exists in any known path before attempting exec
-        val suLocations = arrayOf(
-            "/system/bin/su", "/system/xbin/su", "/sbin/su", "/system/sd/xbin/su",
-            "/data/local/xbin/su", "/data/local/bin/su", "/data/local/su",
-            "/system/sbin/su", "/usr/bin/su", "/vendor/bin/su",
-            "/data/adb/ksu/bin/su", "/data/adb/ap/bin/su", "/data/adb/magisk/su"
-        )
-        var suBinaryPresent = false
-        for (loc in suLocations) {
-            if (File(loc).exists()) {
-                suBinaryPresent = true
-                break
-            }
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            return requestRootFastProbe()
         }
-
-        if (!suBinaryPresent) {
-            isRootedCache = false
-            return false
-        }
-
-        // Verify that su actually works
-        val works = requestRoot()
-        isRootedCache = works
-        return works
+        return false
     }
 
     @JvmStatic
@@ -84,6 +124,15 @@ object DeviceHelper {
             Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         } catch (t: Throwable) {
             false
+        }
+    }
+
+    @JvmStatic
+    fun getShizukuUid(): Int {
+        return try {
+            if (isShizukuGranted()) Shizuku.getUid() else -1
+        } catch (t: Throwable) {
+            -1
         }
     }
 
@@ -126,9 +175,18 @@ object DeviceHelper {
     }
 
     @JvmStatic
+    fun getPorterUid(): Int {
+        return try {
+            if (isPorterGranted()) PorterClient.getUid() else -1
+        } catch (t: Throwable) {
+            -1
+        }
+    }
+
+    @JvmStatic
     fun isPorterRoot(): Boolean {
         return try {
-            PorterClient.isGranted() && PorterClient.getUid() == 0
+            isPorterGranted() && PorterClient.getUid() == 0
         } catch (t: Throwable) {
             false
         }
@@ -136,6 +194,6 @@ object DeviceHelper {
 
     @JvmStatic
     fun isElevated(): Boolean {
-        return isDeviceRooted() || isShizukuGranted() || isPorterGranted()
+        return isDeviceRooted() || isPorterGranted() || isShizukuGranted()
     }
 }

@@ -804,61 +804,12 @@ public class DiskUsage extends LoadableActivity {
     } catch (Throwable ignored) {}
   }
 
+  public void showPrivilegesDialog() {
+    PrivilegesDialog.show(this, null);
+  }
+
   public void requestShizukuAccess() {
-    // 0. Ensure Porter binder is fetched if available
-    PorterClient.fetchBinderFromManager(this);
-
-    // 1. If Porter binder is alive, request through Porter!
-    if (PorterClient.isAlive()) {
-      if (PorterClient.isGranted()) {
-        String mode = PorterClient.getUid() == 0 ? " (Root)" : " (Shell)";
-        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-        return;
-      }
-      boolean requested = PorterClient.requestPermission(SHIZUKU_REQ_CODE);
-      if (requested) {
-        return;
-      }
-    }
-
-    // 2. If Shizuku binder is alive, request through Shizuku!
-    try {
-      if (rikka.shizuku.Shizuku.pingBinder()) {
-        if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-          String mode = "";
-          try {
-            int uid = rikka.shizuku.Shizuku.getUid();
-            mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-          } catch (Throwable ignored) {}
-          Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-          return;
-        }
-        rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-        return;
-      }
-    } catch (Throwable ignored) {}
-
-    new Thread(() -> {
-      boolean rootGranted = com.google.android.diskusage.utils.DeviceHelper.requestRoot();
-      runOnUiThread(() -> {
-        if (rootGranted) {
-          Toast.makeText(DiskUsage.this, R.string.root_permission_granted, Toast.LENGTH_SHORT).show();
-        } else {
-          Intent launchIntent = null;
-          if (com.google.android.diskusage.utils.DeviceHelper.isPorterInstalled(DiskUsage.this)) {
-            launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
-          } else if (com.google.android.diskusage.utils.DeviceHelper.isShizukuInstalled(DiskUsage.this)) {
-            launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
-          }
-          if (launchIntent != null) {
-            startActivity(launchIntent);
-            Toast.makeText(DiskUsage.this, R.string.launch_service_hint, Toast.LENGTH_LONG).show();
-          } else {
-            Toast.makeText(DiskUsage.this, R.string.elevation_not_available, Toast.LENGTH_LONG).show();
-          }
-        }
-      });
-    }).start();
+    showPrivilegesDialog();
   }
 
   private void showOverflowMenu() {
@@ -868,7 +819,7 @@ public class DiskUsage extends LoadableActivity {
     MenuItem itemRescan = m.add(0, 1, 0, R.string.button_rescan);
     boolean isGPU = fileSystemState != null && fileSystemState.isGPU();
     MenuItem itemRenderer = m.add(0, 2, 0, isGPU ? R.string.renderer_software : R.string.renderer_hardware);
-    MenuItem itemShizuku = m.add(0, 5, 0, R.string.menu_shizuku);
+    MenuItem itemPrivileges = m.add(0, 5, 0, R.string.menu_privileges);
     MenuItem itemTips = m.add(0, 3, 0, R.string.menu_tips);
     MenuItem itemAbout = m.add(0, 4, 0, R.string.action_about);
 
@@ -889,7 +840,7 @@ public class DiskUsage extends LoadableActivity {
           showAboutDialog();
           return true;
         case 5:
-          requestShizukuAccess();
+          showPrivilegesDialog();
           return true;
       }
       return false;

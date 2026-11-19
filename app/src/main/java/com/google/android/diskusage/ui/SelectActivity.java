@@ -211,7 +211,7 @@ public class SelectActivity extends Activity {
     } else {
       items.add(new StorageItem(getString(R.string.option_root_required),
           getString(R.string.elevated_access_providers),
-          R.drawable.ic_drive_shield, this::requestElevatedAccess));
+          R.drawable.ic_drive_shield, this::showPrivilegesDialog));
     }
 
     ArrayAdapter<StorageItem> adapter = new ArrayAdapter<StorageItem>(this, 0, items) {
@@ -248,14 +248,14 @@ public class SelectActivity extends Activity {
     if (DeviceHelper.isElevated()) {
       m.add(0, 4, 0, R.string.setup_visible_mount_points);
     }
-    m.add(0, 1, 0, R.string.menu_shizuku);
+    m.add(0, 1, 0, R.string.menu_privileges);
     m.add(0, 2, 0, R.string.menu_tips);
     m.add(0, 3, 0, R.string.action_about);
 
     popup.setOnMenuItemClickListener(item -> {
       switch (item.getItemId()) {
         case 1:
-          requestShizukuAccess();
+          showPrivilegesDialog();
           return true;
         case 2:
           showTipsDialog();
@@ -272,71 +272,16 @@ public class SelectActivity extends Activity {
     popup.show();
   }
 
+  public void showPrivilegesDialog() {
+    PrivilegesDialog.show(this, this::updateStorageList);
+  }
+
   public void requestElevatedAccess() {
-    // 0. Ensure Porter binder is fetched if available
-    PorterClient.fetchBinderFromManager(this);
-
-    // 1. If Porter binder is alive, request through Porter!
-    if (PorterClient.isAlive()) {
-      if (PorterClient.isGranted()) {
-        String mode = PorterClient.getUid() == 0 ? " (Root)" : " (Shell)";
-        Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-        updateStorageList();
-        return;
-      }
-      boolean requested = PorterClient.requestPermission(SHIZUKU_REQ_CODE);
-      if (requested) {
-        return;
-      }
-    }
-
-    // 2. If Shizuku binder is alive, request through Shizuku!
-    try {
-      if (rikka.shizuku.Shizuku.pingBinder()) {
-        if (rikka.shizuku.Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-          String mode = "";
-          try {
-            int uid = rikka.shizuku.Shizuku.getUid();
-            mode = (uid == 0) ? " (Root)" : (uid == 2000 ? " (Shell)" : "");
-          } catch (Throwable ignored) {}
-          Toast.makeText(this, getString(R.string.shizuku_permission_already_granted) + mode, Toast.LENGTH_SHORT).show();
-          updateStorageList();
-          return;
-        }
-        rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQ_CODE);
-        return;
-      }
-    } catch (Throwable ignored) {}
-
-    // 3. Try requesting Superuser / Root rights
-    new Thread(() -> {
-      boolean rootGranted = DeviceHelper.requestRoot();
-      runOnUiThread(() -> {
-        if (rootGranted) {
-          Toast.makeText(SelectActivity.this, R.string.root_permission_granted, Toast.LENGTH_SHORT).show();
-          updateStorageList();
-        } else {
-          // 4. If no running Porter, no running Shizuku, and no root: offer to launch the installed manager app
-          Intent launchIntent = null;
-          if (DeviceHelper.isPorterInstalled(SelectActivity.this)) {
-            launchIntent = getPackageManager().getLaunchIntentForPackage("eu.darken.porter");
-          } else if (DeviceHelper.isShizukuInstalled(SelectActivity.this)) {
-            launchIntent = getPackageManager().getLaunchIntentForPackage("moe.shizuku.privileged.api");
-          }
-
-          if (launchIntent != null) {
-            startActivity(launchIntent);
-            Toast.makeText(SelectActivity.this, R.string.launch_service_hint, Toast.LENGTH_LONG).show();
-          } else {
-            Toast.makeText(SelectActivity.this, R.string.elevation_not_available, Toast.LENGTH_LONG).show();
-          }
-        }
-      });
-    }).start();
+    showPrivilegesDialog();
   }
 
   public void requestShizukuAccess() {
-    requestElevatedAccess();
+    showPrivilegesDialog();
   }
 
   public void showTipsDialog() {
@@ -413,6 +358,11 @@ public class SelectActivity extends Activity {
   protected void onResume() {
     super.onResume();
     PorterClient.fetchBinderFromManager(this);
+    DeviceHelper.probeRootAsync(granted -> {
+      if (granted) {
+        runOnUiThread(this::updateStorageList);
+      }
+    });
     updateStorageList();
     handler.post(checkForMountsUpdates);
   }

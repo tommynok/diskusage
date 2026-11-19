@@ -125,9 +125,9 @@ public abstract class DiskUsageMenu {
       return true;
     });
 
-    MenuItem shizukuMenuItem = menu.add(R.string.menu_shizuku);
-    shizukuMenuItem.setOnMenuItemClickListener(item -> {
-      diskusage.requestShizukuAccess();
+    MenuItem privilegesMenuItem = menu.add(R.string.menu_privileges);
+    privilegesMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.showPrivilegesDialog();
       return true;
     });
 

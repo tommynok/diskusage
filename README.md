@@ -2,7 +2,7 @@
   <img src="extra/icon512x512.png" width="128" height="128" alt="DiskUsage Logo">
 </p>
 
-<h1 align="center">DiskUsage-NG</h1>
+<h1 align="center">DiskUsage</h1>
 
 <p align="center">
   <b>English</b> | <a href="README.ru.md">Русский</a>

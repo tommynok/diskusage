@@ -48,7 +48,9 @@ public class ScanProgressDialog extends AlertDialog {
   }
 
   public void setMax(long max) {
-    this.max = max;
+    if (this.max <= 0 || (max > this.max && progress < max)) {
+      this.max = max;
+    }
   }
   private int depth = 0;
   private boolean warned = false;
@@ -163,7 +165,15 @@ public class ScanProgressDialog extends AlertDialog {
 
   public void onProgressChanged() {
     /* Update the number and percent */
-    double percent = (double) progress / (double) max * basePercent + (1 - basePercent);
+    long currentMax = max;
+    if (currentMax <= 0) {
+      currentMax = 1;
+    }
+    if (progress > currentMax) {
+      currentMax = (long) (progress * 1.15);
+      this.max = currentMax;
+    }
+    double percent = Math.min(0.99, Math.max(0.0, (double) progress / (double) currentMax * basePercent + (1 - basePercent)));
     binding.progress.setProgress((int)(percent * 10000));
     binding.progressDetails.setText(details);  // progressNumber.setText(String.format(format, progress, max));
     SpannableString tmp = new SpannableString(progressPercentFormat.format(percent));

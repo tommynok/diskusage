@@ -1168,6 +1168,29 @@ public class DiskUsage extends LoadableActivity {
     final long totalBlocks;
 
     public FileSystemStats(@NonNull MountPoint mountPoint) {
+      if ("/".equals(mountPoint.getRoot())) {
+        Context context = com.google.android.diskusage.utils.AppHelper.getAppContext();
+        long totalBytes = 0;
+        long freeBytes = 0;
+        long defBlockSize = 4096;
+        for (MountPoint mp : com.google.android.diskusage.filesystem.mnt.RootMountPoint.getRootedMountPoints(context)) {
+          try {
+            StatFsSource s = new StatFsSourceImpl(mp.getRoot());
+            long bs = s.getBlockSizeLong();
+            totalBytes += s.getBlockCountLong() * bs;
+            freeBytes += s.getAvailableBlocksLong() * bs;
+            if (bs > 0) defBlockSize = bs;
+          } catch (Throwable ignored) {}
+        }
+        if (totalBytes > 0) {
+          blockSize = defBlockSize;
+          totalBlocks = totalBytes / defBlockSize;
+          freeBlocks = freeBytes / defBlockSize;
+          busyBlocks = Math.max(0, totalBlocks - freeBlocks);
+          return;
+        }
+      }
+
       StatFsSource stats = null;
       try {
         stats = new StatFsSourceImpl(mountPoint.getRoot());

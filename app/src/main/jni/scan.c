@@ -6,6 +6,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <limits.h>
 
 static const int sep = 0;
 static char global_scan_root[1024] = {0};
@@ -167,7 +168,31 @@ void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
     int res = lstat(entityPath, &stbuf);
     if (res < 0) { free((void*)entityPath); continue; }
 
-    if (S_ISDIR(stbuf.st_mode)) {
+    int is_dir = S_ISDIR(stbuf.st_mode);
+
+    /* Follow directory symlinks (e.g. /system, /product, /odm on modern System-as-Root / Dynamic Partitions) */
+    if (S_ISLNK(stbuf.st_mode)) {
+      struct stat target_st;
+      if (stat(entityPath, &target_st) == 0 && S_ISDIR(target_st.st_mode)) {
+        char resolved[PATH_MAX];
+        memset(resolved, 0, sizeof(resolved));
+        if (realpath(entityPath, resolved) != NULL) {
+          /* Prevent infinite loops and unwanted trees */
+          if (strcmp(resolved, "/") != 0 && strcmp(resolved, entityPath) != 0) {
+            /* Avoid cyclic reference if target is an ancestor of entityPath */
+            int rlen = strlen(resolved);
+            if (strncmp(entityPath, resolved, rlen) != 0 || (entityPath[rlen] != '/' && entityPath[rlen] != '\0')) {
+              if (!is_skipped_dir(resolved)) {
+                is_dir = 1;
+                stbuf = target_st;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (is_dir) {
       if (is_skipped_dir(entityPath)) {
         free((void*)entityPath);
         continue;

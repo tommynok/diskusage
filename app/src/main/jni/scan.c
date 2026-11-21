@@ -7,7 +7,6 @@
 #include <dirent.h>
 #include <stdlib.h>
 
-dev_t dev;
 static const int sep = 0;
 
 struct Entity {
@@ -18,7 +17,7 @@ struct Entity {
   char isdir;
 };
 
-void scan_dir(const char *path, struct Entity *entity);
+void scan_dir(const char *path, struct Entity *entity, dev_t cur_dev);
 
 const char *getName(const char *path) {
   const char *res = strrchr(path, '/');
@@ -85,16 +84,15 @@ struct Entity *make_entity_internal(
   return e;
 }
 
-struct Entity *make_entity(const char *path) {
+struct Entity *make_entity(const char *path, dev_t cur_dev) {
   struct stat stbuf;
   int res = lstat(path, &stbuf);
   if (res < 0) {
     return NULL;
   }
-  // Only skip directories that cross into different mount points / filesystems.
-  // Regular files inside overlayfs (e.g. KernelSU / Magisk modules) can have
-  // a different st_dev (from the lowerdir physical filesystem) and must NOT be skipped!
-  if (S_ISDIR(stbuf.st_mode) && stbuf.st_dev != dev) {
+  // Skip directories on a different device so we don't cross mount points.
+  // Regular files on a different st_dev (e.g. overlayfs lower-layer) are kept.
+  if (S_ISDIR(stbuf.st_mode) && stbuf.st_dev != cur_dev) {
     return NULL;
   }
   return make_entity_internal(path, &stbuf);
@@ -117,13 +115,8 @@ char *makePath(const char *base, const char *name) {
   return res;
 }
 
-void scan_dir(const char *path, struct Entity *dirEntity) {
+void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
   DIR *dir = opendir(path);
-  struct Entity *e;
-  struct Entity *curr;
-  struct Entity *prev;
-  struct Entity *first = NULL;
-  struct Entity **last = &first;
 
   if (dir == NULL) {
     dump_error('D', path, dirEntity->sizeInBlocks,
@@ -133,6 +126,15 @@ void scan_dir(const char *path, struct Entity *dirEntity) {
   }
   dump_file(dirEntity);
 
+  /* We need to track sub_dev for each child dir; use a parallel list */
+  struct SubDirEntry {
+    struct Entity *entity;
+    dev_t sub_dev;
+    struct SubDirEntry *next;
+  };
+  struct SubDirEntry *dirFirst = NULL;
+  struct SubDirEntry **dirLast = &dirFirst;
+
   struct dirent *entity;
   while ((entity = readdir(dir)) != NULL) {
     if (entity->d_name[0] == 0 || (entity->d_name[0] == '.' && (
@@ -140,32 +142,44 @@ void scan_dir(const char *path, struct Entity *dirEntity) {
             entity->d_name[1] == '.' && entity->d_name[2] == 0))
         )) continue;
     const char *entityPath = makePath(path, entity->d_name);
-    struct Entity *e = make_entity(entityPath);
-    free((void*)entityPath);
-    if (e == NULL) continue;
-    if (!e->isdir) {
+    struct stat stbuf;
+    int res = lstat(entityPath, &stbuf);
+    if (res < 0) { free((void*)entityPath); continue; }
+
+    if (S_ISDIR(stbuf.st_mode)) {
+      /* Include this subdir regardless of st_dev (we'll scan it with its own dev) */
+      struct Entity *e = make_entity_internal(entityPath, &stbuf);
+      free((void*)entityPath);
+      struct SubDirEntry *se = (struct SubDirEntry*)malloc(sizeof(struct SubDirEntry));
+      se->entity = e;
+      se->sub_dev = stbuf.st_dev;
+      se->next = NULL;
+      *dirLast = se;
+      dirLast = &(se->next);
+    } else {
+      /* Files: skip if on a different device (pure bind-mounted single files) */
+      if (stbuf.st_dev != cur_dev) { free((void*)entityPath); continue; }
+      struct Entity *e = make_entity_internal(entityPath, &stbuf);
+      free((void*)entityPath);
       dump_file(e);
       free((void*)e->name);
       free(e);
-      continue;
     }
-    *last = e;
-    last = &(e->next);
   }
-  *last = NULL;
 
   closedir(dir);
 
-  curr = first;
-
-  while (curr != NULL) {
-    const char *entityPath = makePath(path, curr->name);
-    scan_dir(entityPath, curr);
+  struct SubDirEntry *se = dirFirst;
+  while (se != NULL) {
+    const char *entityPath = makePath(path, se->entity->name);
+    /* Each subdir is scanned with its own st_dev, so cross-mount subdirs work */
+    scan_dir(entityPath, se->entity, se->sub_dev);
     free((void*)entityPath);
-    free((void*)curr->name);
-    prev = curr;
-    curr = curr->next;
-    free(prev);
+    free((void*)se->entity->name);
+    free(se->entity);
+    struct SubDirEntry *next = se->next;
+    free(se);
+    se = next;
   }
   dump('Z');
 }
@@ -179,8 +193,7 @@ void scan_tree(const char *path) {
     fflush(stdout);
     return;
   }
-  dev = stbuf.st_dev;
-  scan_dir(path, make_entity_internal(path, &stbuf));
+  scan_dir(path, make_entity_internal(path, &stbuf), stbuf.st_dev);
   fflush(stdout);
 }
 

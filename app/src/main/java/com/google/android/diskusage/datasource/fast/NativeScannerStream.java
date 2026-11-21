@@ -106,11 +106,12 @@ public class NativeScannerStream extends InputStream {
       String binaryPath = getScanBinaryPath(binaryName);
       Process process = null;
 
-      boolean useDirectSu = DeviceHelper.isDeviceRooted();
+      // Always try su if rootRequired (cache may be stale or uninitialized for first scan)
+      boolean useDirectSu = rootRequired || DeviceHelper.isDeviceRooted();
       boolean usePorter = DeviceHelper.isPorterGranted();
       boolean useShizuku = DeviceHelper.isShizukuGranted();
 
-      // F10 fix: Fallback cascade: direct verified su -> Porter -> Shizuku
+      // Fallback cascade: direct su -> Porter -> Shizuku
       if (useDirectSu) {
         try {
           process = runWithSu(binaryPath, root);
@@ -151,11 +152,6 @@ public class NativeScannerStream extends InputStream {
       }
 
       if (process == null) {
-        if (rootRequired) {
-          try {
-            process = runWithSu(binaryPath, root);
-          } catch (IOException ignored) {}
-        }
         if (process == null && rootRequired) {
           throw new IOException("Failed to obtain elevated process (su, Porter or Shizuku) to scan " + root);
         }

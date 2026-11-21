@@ -207,8 +207,8 @@ void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
       *dirLast = se;
       dirLast = &(se->next);
     } else {
-      /* Files: skip if on a different device (pure bind-mounted single files) */
-      if (stbuf.st_dev != cur_dev) { free((void*)entityPath); continue; }
+      /* Regular files: NEVER skip by st_dev, because under overlayfs (KernelSU/Magisk)
+         files retain the st_dev of their lowerdir physical storage. */
       struct Entity *e = make_entity_internal(entityPath, &stbuf);
       free((void*)entityPath);
       dump_file(e);

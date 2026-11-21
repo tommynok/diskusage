@@ -1261,14 +1261,18 @@ public class DiskUsage extends LoadableActivity {
   }
 
   Runnable makeProgressUpdater(final ProgressGenerator scanner,
-      final FileSystemStats stats) {
+      final FileSystemStats stats, final boolean isRootFs) {
     return new Runnable() {
       private FileSystemEntry file;
       @Override
       public void run() {
         ScanProgressDialog dialog = getPersistantState().loading;
         if (dialog != null) {
-          dialog.setMax(stats.busyBlocks);
+          if (isRootFs) {
+            dialog.setIndeterminate(true);
+          } else {
+            dialog.setMax(stats.busyBlocks);
+          }
           FileSystemEntry lastFile = scanner.lastCreatedFile();
 
           if (lastFile != file) {
@@ -1285,6 +1289,7 @@ public class DiskUsage extends LoadableActivity {
   FileSystemSuperRoot scan() throws IOException, InterruptedException {
     final MountPoint mountPoint = MountPoint.getForKey(this, key);
     final FileSystemStats stats = new FileSystemStats(mountPoint);
+    final boolean isRootFs = "/".equals(mountPoint.getRoot());
     int heap = getMemoryQuota();
 
     FileSystemEntry rootElement;
@@ -1292,7 +1297,7 @@ public class DiskUsage extends LoadableActivity {
     try {
       final NativeScanner scanner = new NativeScanner(this, stats.blockSize, stats.busyBlocks, heap);
       this.activeScanner = scanner;
-      progressUpdater = makeProgressUpdater(scanner, stats);
+      progressUpdater = makeProgressUpdater(scanner, stats, isRootFs);
       handler.post(progressUpdater);
       rootElement = scanner.scan(mountPoint);
       handler.removeCallbacks(progressUpdater);
@@ -1301,7 +1306,7 @@ public class DiskUsage extends LoadableActivity {
       this.activeScanner = null;
       Logger.getLOGGER().e("DiskUsage: Native scanner failed, falling back to Java scanner", e);
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
-      progressUpdater = makeProgressUpdater(scanner, stats);
+      progressUpdater = makeProgressUpdater(scanner, stats, isRootFs);
       handler.post(progressUpdater);
       rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.getRoot()));
       handler.removeCallbacks(progressUpdater);

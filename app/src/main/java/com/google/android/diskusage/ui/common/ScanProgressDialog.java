@@ -40,6 +40,7 @@ public class ScanProgressDialog extends AlertDialog {
 
   private long progress;
   private long max;
+  private boolean indeterminate = false;
   private double lastPercent = 0.0;
   private NumberFormat progressPercentFormat;
 
@@ -52,6 +53,24 @@ public class ScanProgressDialog extends AlertDialog {
     if (this.max <= 0 || (max > this.max && progress < max)) {
       this.max = max;
     }
+  }
+
+  public void setIndeterminate(boolean indeterminate) {
+    this.indeterminate = indeterminate;
+    if (binding != null) {
+      binding.progress.setIndeterminate(indeterminate);
+      binding.progressPercent.setVisibility(indeterminate ? android.view.View.GONE : android.view.View.VISIBLE);
+      if (indeterminate) {
+        android.widget.RelativeLayout.LayoutParams lp =
+            (android.widget.RelativeLayout.LayoutParams) binding.progressDetails.getLayoutParams();
+        lp.leftMargin = (int) (12 * getContext().getResources().getDisplayMetrics().density);
+        binding.progressDetails.setLayoutParams(lp);
+      }
+    }
+  }
+
+  public boolean isIndeterminate() {
+    return indeterminate;
   }
   private int depth = 0;
   private boolean warned = false;
@@ -165,6 +184,13 @@ public class ScanProgressDialog extends AlertDialog {
   }
 
   public void onProgressChanged() {
+    if (indeterminate) {
+      if (binding != null) {
+        binding.progressDetails.setText(details);
+      }
+      return;
+    }
+
     /* Update the number and percent */
     long currentMax = max;
     if (currentMax <= 0) {
@@ -222,6 +248,9 @@ public class ScanProgressDialog extends AlertDialog {
     progressPercentFormat.setMaximumFractionDigits(0);
     binding.progress.setMax(10000);
     setView(binding.getRoot());
+    if (indeterminate) {
+      setIndeterminate(true);
+    }
     onProgressChanged();
     super.onCreate(savedInstanceState);
   }

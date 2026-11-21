@@ -8,6 +8,27 @@
 #include <stdlib.h>
 
 static const int sep = 0;
+static char global_scan_root[1024] = {0};
+
+static int is_skipped_dir(const char *path) {
+  /* Always skip kernel virtual filesystems and pseudo trees */
+  if (strcmp(path, "/proc") == 0 || strncmp(path, "/proc/", 6) == 0) return 1;
+  if (strcmp(path, "/sys") == 0 || strncmp(path, "/sys/", 5) == 0) return 1;
+  if (strcmp(path, "/dev") == 0 || strncmp(path, "/dev/", 5) == 0) return 1;
+  if (strcmp(path, "/acct") == 0 || strncmp(path, "/acct/", 6) == 0) return 1;
+  if (strcmp(path, "/config") == 0 || strncmp(path, "/config/", 8) == 0) return 1;
+  if (strcmp(path, "/linkerconfig") == 0 || strncmp(path, "/linkerconfig/", 14) == 0) return 1;
+  if (strcmp(path, "/data_mirror") == 0 || strncmp(path, "/data_mirror/", 13) == 0) return 1;
+  if (strcmp(path, "/debug_ramdisk") == 0 || strncmp(path, "/debug_ramdisk/", 15) == 0) return 1;
+
+  /* When scanning root "/", skip mirror / FUSE mount trees that duplicate /data/media */
+  if (strcmp(global_scan_root, "/") == 0) {
+    if (strcmp(path, "/mnt") == 0 || strncmp(path, "/mnt/", 5) == 0) return 1;
+    if (strcmp(path, "/storage") == 0 || strncmp(path, "/storage/", 9) == 0) return 1;
+  }
+
+  return 0;
+}
 
 struct Entity {
   long long sizeInBlocks;
@@ -147,6 +168,10 @@ void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
     if (res < 0) { free((void*)entityPath); continue; }
 
     if (S_ISDIR(stbuf.st_mode)) {
+      if (is_skipped_dir(entityPath)) {
+        free((void*)entityPath);
+        continue;
+      }
       /* Include this subdir regardless of st_dev (we'll scan it with its own dev) */
       struct Entity *e = make_entity_internal(entityPath, &stbuf);
       free((void*)entityPath);
@@ -212,6 +237,7 @@ int main(int argc, char **argv) {
     path[len - 1] = '\0';
     len--;
   }
+  strncpy(global_scan_root, path, sizeof(global_scan_root) - 1);
   putchar(0);
   fflush(stdout);
   scan_tree(path);

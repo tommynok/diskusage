@@ -1168,6 +1168,11 @@ public class DiskUsage extends LoadableActivity {
     final long totalBlocks;
 
     public FileSystemStats(@NonNull MountPoint mountPoint) {
+      long bSize = 512;
+      long fBlocks = 0;
+      long tBlocks = 0;
+      long bBlocks = 0;
+
       if ("/".equals(mountPoint.getRoot())) {
         Context context = com.google.android.diskusage.utils.AppHelper.getAppContext();
         long totalBytes = 0;
@@ -1196,41 +1201,51 @@ public class DiskUsage extends LoadableActivity {
           } catch (Throwable ignored) {}
         }
         if (totalBytes > 0) {
-          blockSize = defBlockSize;
-          totalBlocks = totalBytes / defBlockSize;
-          freeBlocks = freeBytes / defBlockSize;
-          busyBlocks = Math.max(0, totalBlocks - freeBlocks);
-          return;
+          bSize = defBlockSize;
+          tBlocks = totalBytes / defBlockSize;
+          fBlocks = freeBytes / defBlockSize;
+          bBlocks = Math.max(0, tBlocks - fBlocks);
+        }
+      } else if ("/data".equals(mountPoint.getRoot())) {
+        Context context = com.google.android.diskusage.utils.AppHelper.getAppContext();
+        boolean resolved = false;
+        try {
+          android.os.StatFs dataFs = new android.os.StatFs(context.getFilesDir().getAbsolutePath());
+          bSize = dataFs.getBlockSizeLong();
+          fBlocks = dataFs.getAvailableBlocksLong();
+          tBlocks = dataFs.getBlockCountLong();
+          bBlocks = Math.max(0, tBlocks - fBlocks);
+          resolved = true;
+        } catch (Throwable ignored) {}
+
+        if (!resolved) {
+          try {
+            StatFsSource stats = new StatFsSourceImpl(mountPoint.getRoot());
+            bSize = stats.getBlockSizeLong();
+            fBlocks = stats.getAvailableBlocksLong();
+            tBlocks = stats.getBlockCountLong();
+            bBlocks = tBlocks - fBlocks;
+          } catch (Throwable ignored) {}
+        }
+      } else {
+        StatFsSource stats = null;
+        try {
+          stats = new StatFsSourceImpl(mountPoint.getRoot());
+        } catch (IllegalArgumentException e) {
+          Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
+        }
+        if (stats != null) {
+          bSize = stats.getBlockSizeLong();
+          fBlocks = stats.getAvailableBlocksLong();
+          tBlocks = stats.getBlockCountLong();
+          bBlocks = tBlocks - fBlocks;
         }
       }
 
-      if ("/data".equals(mountPoint.getRoot())) {
-        Context context = com.google.android.diskusage.utils.AppHelper.getAppContext();
-        try {
-          android.os.StatFs dataFs = new android.os.StatFs(context.getFilesDir().getAbsolutePath());
-          blockSize = dataFs.getBlockSizeLong();
-          freeBlocks = dataFs.getAvailableBlocksLong();
-          totalBlocks = dataFs.getBlockCountLong();
-          busyBlocks = Math.max(0, totalBlocks - freeBlocks);
-          return;
-        } catch (Throwable ignored) {}
-      }
-
-      StatFsSource stats = null;
-      try {
-        stats = new StatFsSourceImpl(mountPoint.getRoot());
-      } catch (IllegalArgumentException e) {
-        Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
-      }
-      if (stats != null) {
-        blockSize = stats.getBlockSizeLong();
-        freeBlocks = stats.getAvailableBlocksLong();
-        totalBlocks = stats.getBlockCountLong();
-        busyBlocks = totalBlocks - freeBlocks;
-      } else {
-        freeBlocks = totalBlocks = busyBlocks = 0;
-        blockSize = 512;
-      }
+      this.blockSize = bSize;
+      this.freeBlocks = fBlocks;
+      this.totalBlocks = tBlocks;
+      this.busyBlocks = bBlocks;
     }
     public String formatUsageInfo() {
       if (totalBlocks == 0) return com.google.android.diskusage.utils.AppHelper.getAppContext().getString(R.string.mount_point_no_info);

@@ -1173,9 +1173,22 @@ public class DiskUsage extends LoadableActivity {
         long totalBytes = 0;
         long freeBytes = 0;
         long defBlockSize = 4096;
+
+        // 1. /data partition (must use app's internal filesDir because StatFs("/data") is blocked by SELinux on Android 10+)
+        try {
+          android.os.StatFs dataFs = new android.os.StatFs(context.getFilesDir().getAbsolutePath());
+          long bs = dataFs.getBlockSizeLong();
+          totalBytes += dataFs.getBlockCountLong() * bs;
+          freeBytes += dataFs.getAvailableBlocksLong() * bs;
+          if (bs > 0) defBlockSize = bs;
+        } catch (Throwable ignored) {}
+
+        // 2. System and other partitions from RootMountPoint
         for (MountPoint mp : com.google.android.diskusage.filesystem.mnt.RootMountPoint.getRootedMountPoints(context)) {
+          String root = mp.getRoot();
+          if ("/data".equals(root)) continue;
           try {
-            StatFsSource s = new StatFsSourceImpl(mp.getRoot());
+            StatFsSource s = new StatFsSourceImpl(root);
             long bs = s.getBlockSizeLong();
             totalBytes += s.getBlockCountLong() * bs;
             freeBytes += s.getAvailableBlocksLong() * bs;
@@ -1189,6 +1202,18 @@ public class DiskUsage extends LoadableActivity {
           busyBlocks = Math.max(0, totalBlocks - freeBlocks);
           return;
         }
+      }
+
+      if ("/data".equals(mountPoint.getRoot())) {
+        Context context = com.google.android.diskusage.utils.AppHelper.getAppContext();
+        try {
+          android.os.StatFs dataFs = new android.os.StatFs(context.getFilesDir().getAbsolutePath());
+          blockSize = dataFs.getBlockSizeLong();
+          freeBlocks = dataFs.getAvailableBlocksLong();
+          totalBlocks = dataFs.getBlockCountLong();
+          busyBlocks = Math.max(0, totalBlocks - freeBlocks);
+          return;
+        } catch (Throwable ignored) {}
       }
 
       StatFsSource stats = null;

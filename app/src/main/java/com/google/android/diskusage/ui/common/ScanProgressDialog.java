@@ -40,6 +40,7 @@ public class ScanProgressDialog extends AlertDialog {
 
   private long progress;
   private long max;
+  private double lastPercent = 0.0;
   private NumberFormat progressPercentFormat;
 
   public ScanProgressDialog(Context context) {
@@ -169,11 +170,18 @@ public class ScanProgressDialog extends AlertDialog {
     if (currentMax <= 0) {
       currentMax = 1;
     }
-    if (progress > currentMax) {
-      currentMax = (long) (progress * 1.15);
-      this.max = currentMax;
+    double rawPercent;
+    if (progress <= currentMax) {
+      rawPercent = (double) progress / (double) currentMax * basePercent + (1 - basePercent);
+    } else {
+      // Progress exceeded expected max: smoothly approach 99% without ever dropping back
+      double excessRatio = (double) (progress - currentMax) / (double) currentMax;
+      rawPercent = 0.90 + 0.09 * (excessRatio / (1.0 + excessRatio));
     }
-    double percent = Math.min(0.99, Math.max(0.0, (double) progress / (double) currentMax * basePercent + (1 - basePercent)));
+    // Strictly monotonic: progress only moves forward, never drops back
+    double percent = Math.min(0.99, Math.max(lastPercent, rawPercent));
+    lastPercent = percent;
+
     binding.progress.setProgress((int)(percent * 10000));
     binding.progressDetails.setText(details);  // progressNumber.setText(String.format(format, progress, max));
     SpannableString tmp = new SpannableString(progressPercentFormat.format(percent));

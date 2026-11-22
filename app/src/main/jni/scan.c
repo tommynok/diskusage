@@ -137,6 +137,39 @@ char *makePath(const char *base, const char *name) {
   return res;
 }
 
+static int points_to_sibling(const char *scan_root, const char *entity_name, const char *resolved) {
+  int root_len = strlen(scan_root);
+  if (strncmp(resolved, scan_root, root_len) != 0) return 0;
+
+  const char *sub = resolved + root_len;
+  while (*sub == '/') sub++;
+
+  /* Find next component name */
+  const char *slash = strchr(sub, '/');
+  int top_len = slash ? (int)(slash - sub) : (int)strlen(sub);
+  if (top_len <= 0) return 0;
+
+  char top_name[256];
+  if (top_len >= (int)sizeof(top_name)) return 0;
+  memcpy(top_name, sub, top_len);
+  top_name[top_len] = '\0';
+
+  /* If it points to itself, that's not a sibling */
+  if (strcmp(entity_name, top_name) == 0) return 0;
+
+  /* Check if sibling exists and is a directory */
+  char *sibling_path = makePath(scan_root, top_name);
+  struct stat st;
+  int is_dir = 0;
+  if (lstat(sibling_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+    if (!is_skipped_dir(sibling_path)) {
+      is_dir = 1;
+    }
+  }
+  free(sibling_path);
+  return is_dir;
+}
+
 void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
   DIR *dir = opendir(path);
 
@@ -170,19 +203,29 @@ void scan_dir(const char *path, struct Entity *dirEntity, dev_t cur_dev) {
 
     int is_dir = S_ISDIR(stbuf.st_mode);
 
-    /* Follow directory symlinks (e.g. /system, /product, /odm on modern System-as-Root / Dynamic Partitions) */
-    if (S_ISLNK(stbuf.st_mode)) {
+    /* Follow directory symlinks ONLY at the scan root level, avoiding duplicate
+       trees like /system/product -> /product, /system/vendor -> /vendor, /data/data -> /data/user/0 */
+    if (S_ISLNK(stbuf.st_mode) && strcmp(path, global_scan_root) == 0) {
       struct stat target_st;
       if (stat(entityPath, &target_st) == 0 && S_ISDIR(target_st.st_mode)) {
         char resolved[PATH_MAX];
         memset(resolved, 0, sizeof(resolved));
         if (realpath(entityPath, resolved) != NULL) {
-          /* Prevent infinite loops and unwanted trees */
-          if (strcmp(resolved, "/") != 0 && strcmp(resolved, entityPath) != 0) {
-            /* Avoid cyclic reference if target is an ancestor of entityPath */
+          /* If scan root is not "/", don't escape outside scan root */
+          int within_scope = 1;
+          if (strcmp(global_scan_root, "/") != 0) {
+            int root_len = strlen(global_scan_root);
+            if (strncmp(resolved, global_scan_root, root_len) != 0 ||
+                (resolved[root_len] != '/' && resolved[root_len] != '\0')) {
+              within_scope = 0;
+            }
+          }
+
+          /* Prevent infinite loops, root references, and duplicate sibling trees */
+          if (within_scope && strcmp(resolved, "/") != 0 && strcmp(resolved, entityPath) != 0) {
             int rlen = strlen(resolved);
             if (strncmp(entityPath, resolved, rlen) != 0 || (entityPath[rlen] != '/' && entityPath[rlen] != '\0')) {
-              if (!is_skipped_dir(resolved)) {
+              if (!is_skipped_dir(resolved) && !points_to_sibling(global_scan_root, entity->d_name, resolved)) {
                 is_dir = 1;
                 stbuf = target_st;
               }

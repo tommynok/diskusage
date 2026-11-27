@@ -87,6 +87,17 @@ public class FileSystemPackage extends FileSystemEntry {
                                  this.flags);
   }
 
+  /**
+   * FileSystemPackage is a virtual/logical node — it has no real filesystem
+   * path of its own.  Returning null lets absolutePath() in child nodes
+   * (apk / data / cache synthetic entries) also return null, so the UI
+   * never constructs a fake path like /storage/emulated/0/Приложения/Chrome/data.
+   */
+  @Override
+  public String absolutePath() {
+    return null;
+  }
+
   public void addPublicChild(FileSystemRoot child, @NonNull ChildType type, long blockSize) {
     publicChildren.add(child);
     switch (type) {

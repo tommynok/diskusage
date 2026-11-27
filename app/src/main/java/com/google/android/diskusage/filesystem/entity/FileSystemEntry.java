@@ -1003,7 +1003,12 @@ public class FileSystemEntry {
     if (this instanceof FileSystemRoot) {
       return ((FileSystemRoot)this).rootPath;
     }
-    return parent.absolutePath() + "/" + name;
+    // If a parent node has no real filesystem path (e.g. virtual app nodes
+    // like FileSystemPackage, or the "Приложения" grouping node), propagate
+    // null so callers know the path is not a real filesystem path.
+    String parentPath = parent.absolutePath();
+    if (parentPath == null) return null;
+    return parentPath + "/" + name;
   }
 
   /**

@@ -30,6 +30,7 @@
 
     <!-- Full Path Section -->
     <LinearLayout
+        android:id="@+id/entry_path_section"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"

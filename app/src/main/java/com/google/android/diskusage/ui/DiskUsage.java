@@ -886,7 +886,14 @@ public class DiskUsage extends LoadableActivity {
     binding.entryName.setText(name);
 
     String absPath = entry.absolutePath();
-    binding.entryPath.setText(absPath != null && !absPath.isEmpty() ? absPath : "/");
+    if (absPath != null && !absPath.isEmpty()) {
+      binding.entryPath.setText(absPath);
+      binding.entryPathSection.setVisibility(View.VISIBLE);
+    } else {
+      // Virtual node (e.g. apk/data/cache inside an app package) — hide
+      // the path row so the UI never shows a fabricated path.
+      binding.entryPathSection.setVisibility(View.GONE);
+    }
 
     binding.btnCopyPath.setOnClickListener(v -> {
       if (absPath != null && !absPath.isEmpty()) {
@@ -912,7 +919,8 @@ public class DiskUsage extends LoadableActivity {
         || fileSystemState.masterRoot == null
         || entry == fileSystemState.masterRoot.children[0]
         || entry instanceof FileSystemSpecial
-        || entry instanceof FileSystemPackage);
+        || entry instanceof FileSystemPackage
+        || absPath == null || absPath.isEmpty());
     binding.btnSheetOpen.setVisibility(canOpen ? View.VISIBLE : View.GONE);
     binding.btnSheetOpen.setEnabled(canOpen);
     binding.btnSheetOpen.setOnClickListener(v -> {
@@ -1032,7 +1040,7 @@ public class DiskUsage extends LoadableActivity {
     }
     String abs = position.absolutePath();
     if (mp != null && mp.getRoot() != null) {
-      if (abs == null || abs.isEmpty() || abs.equals(mp.getRoot()) || (mp.getRoot() + "/").equals(abs)) {
+      if (abs != null && (abs.isEmpty() || abs.equals(mp.getRoot()) || (mp.getRoot() + "/").equals(abs))) {
         return true;
       }
     }
@@ -1067,7 +1075,27 @@ public class DiskUsage extends LoadableActivity {
   private String getAncestorsBreadcrumbs(FileSystemEntry entry, MountPoint mp, String volumeName) {
     if (entry == null) return volumeName;
     String abs = entry.absolutePath();
-    if (abs == null || abs.isEmpty()) return volumeName;
+
+    // If absolutePath() is null the entry is a virtual/logical node (e.g. a
+    // synthetic apk/data/cache child of FileSystemPackage). In that case
+    // build the display crumb from the logical tree, not the FS path.
+    if (abs == null) {
+      // Walk up to the nearest ancestor that has a real path.
+      ArrayList<String> parts = new ArrayList<>();
+      FileSystemEntry cur = entry.parent;
+      while (cur != null) {
+        String curAbs = cur.absolutePath();
+        if (curAbs != null) break; // stop at the first real-path ancestor
+        if (cur.name != null && !cur.name.isEmpty()) parts.add(cur.name);
+        cur = cur.parent;
+      }
+      if (parts.isEmpty()) return volumeName;
+      StringBuilder sb = new StringBuilder(volumeName);
+      for (int i = parts.size() - 1; i >= 0; i--) {
+        sb.append(" \u203A ").append(parts.get(i));
+      }
+      return sb.toString();
+    }
 
     String root = (mp != null && mp.getRoot() != null) ? mp.getRoot() : "/storage/emulated/0";
     String sub = "";
@@ -1080,6 +1108,17 @@ public class DiskUsage extends LoadableActivity {
       if (secondSlash != -1) {
         sub = abs.substring(secondSlash);
       }
+    } else {
+      // Path is on a different root (e.g. /data/data/...) — build the
+      // breadcrumb directly from the absolute path segments, skipping the
+      // last segment (the entry's own name).
+      int lastSlash = abs.lastIndexOf('/');
+      if (lastSlash > 0) {
+        sub = abs.substring(0, lastSlash);
+        // Show the full parent path as breadcrumb (replace '/' with ' › ')
+        return sub.replace("/", " \u203A ").replaceFirst("^ \u203A ", "");
+      }
+      return volumeName;
     }
     if (sub.startsWith("/")) sub = sub.substring(1);
 

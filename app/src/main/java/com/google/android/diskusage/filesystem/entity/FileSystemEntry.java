@@ -995,7 +995,7 @@ public class FileSystemEntry {
     return path.toString();
   }
 
-  public final String absolutePath() {
+  public String absolutePath() {
     if (this == null) {
       // FIXME: to prevent crash appeared on some users.
       return "";
@@ -1003,6 +1003,7 @@ public class FileSystemEntry {
     if (this instanceof FileSystemRoot) {
       return ((FileSystemRoot)this).rootPath;
     }
+    if (parent == null) return null;
     // If a parent node has no real filesystem path (e.g. virtual app nodes
     // like FileSystemPackage, or the "Приложения" grouping node), propagate
     // null so callers know the path is not a real filesystem path.
